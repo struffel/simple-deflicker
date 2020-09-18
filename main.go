@@ -31,7 +31,7 @@ func main() {
 	fmt.Print("\n")
 
 	average = sum / images
-	fmt.Printf("AVG: %v", average)
+	fmt.Printf("AVG: %v\n", average)
 
 	var current uint64 = 0
 
@@ -46,9 +46,11 @@ func main() {
 
 func getAverageLuminance(input image.Image) uint64 {
 	var sum, pixels uint64
+	var precision int
+	precision = 4
 	input = imaging.Grayscale(input)
-	for y := input.Bounds().Min.Y; y < input.Bounds().Max.Y; y++ {
-		for x := input.Bounds().Min.X; x < input.Bounds().Max.X; x++ {
+	for y := input.Bounds().Min.Y; y < input.Bounds().Max.Y; y += precision {
+		for x := input.Bounds().Min.X; x < input.Bounds().Max.X; x += precision {
 			col, _, _, alpha := input.At(x, y).RGBA()
 			if alpha > 0 {
 				sum += uint64(col)
