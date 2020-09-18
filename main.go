@@ -40,20 +40,17 @@ func main() {
 
 	var current uint64 = 0
 
-	perPixelFunction := func(c color.NRGBA) color.NRGBA {
-		var factor float64
-		factor = math.Pow(float64(average)/float64(current), math.Sqrt(2))
-		var output color.NRGBA
-		output.R = uint8(math.Min(float64(c.R)*factor, 255.0))
-		output.G = uint8(math.Min(float64(c.G)*factor, 255.0))
-		output.B = uint8(math.Min(float64(c.B)*factor, 255.0))
-		output.A = c.A
-		return output
-	}
-
 	for _, f := range files {
 		var img, _ = imaging.Open("./input/" + f.Name())
 		current = getAverageLuminance(img)
+		perPixelFunction := func(c color.NRGBA) color.NRGBA {
+			var output color.NRGBA
+			output.R = uint8(math.Pow((float64(c.R)/255), float64(current)/float64(average)) * 255)
+			output.G = uint8(math.Pow((float64(c.G)/255), float64(current)/float64(average)) * 255)
+			output.B = uint8(math.Pow((float64(c.B)/255), float64(current)/float64(average)) * 255)
+			output.A = c.A
+			return output
+		}
 		var imgCorrected = imaging.AdjustFunc(img, perPixelFunction)
 		fmt.Println(f.Name())
 		fmt.Println(getAverageLuminance(imgCorrected))
@@ -76,12 +73,11 @@ func getAverageLuminance(input image.Image) uint64 {
 	return sum / pixels
 }
 
+/*
 func getExposureLUTfromAverageLuminance(current uint16, target uint16) []uint8 {
-	var factor float64
-	factor = float64(target) / float64(current)
 	var lut = make([]uint8, 256)
 	for i := 0; i < 256; i++ {
-		lut[i] = uint8(float64(i) * factor)
+		lut[i] = uint8(math.Pow((float64(i) / 256), float64(current)/float64(target)))
 	}
 	return lut
-}
+}*/
