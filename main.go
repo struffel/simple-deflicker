@@ -11,43 +11,39 @@ import (
 )
 
 func main() {
-	var sum, images, average uint64
 	fmt.Println("Starting...")
-
-	images = 0
-	sum = 0
 
 	files, err := ioutil.ReadDir("./input/")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	for _, f := range files {
+	brightnessValues := make([]uint16, len(files))
+	fmt.Println(len(brightnessValues))
+
+	for i, f := range files {
 		fmt.Print(".")
 		var img, _ = imaging.Open("./input/" + f.Name())
-		sum += getAverageLuminance(img)
-		images++
+		brightnessValues[i] = getBrightness(img, 8)
 	}
 	fmt.Print("\n")
 
-	average = sum / images
+	var sum uint64 = 0
+	for _, value := range brightnessValues {
+		sum += uint64(value)
+	}
+	var average uint16 = uint16(float64(sum) / float64(len(brightnessValues)))
 	fmt.Printf("AVG: %v\n", average)
-
-	var current uint64 = 0
-
-	for _, f := range files {
+	for i, f := range files {
 		var img, _ = imaging.Open("./input/" + f.Name())
-		current = getAverageLuminance(img)
-		var imgCorrected = imaging.AdjustGamma(img, float64(average)/float64(current))
+		var imgCorrected = imaging.AdjustGamma(img, float64(average)/float64(brightnessValues[i]))
 		fmt.Print(".")
-		imaging.Save(imgCorrected, "./output/"+filepath.Base(f.Name()))
+		imaging.Save(imgCorrected, "./output/"+filepath.Base(f.Name()), imaging.JPEGQuality(95), imaging.PNGCompressionLevel(0))
 	}
 }
 
-func getAverageLuminance(input image.Image) uint64 {
+func getBrightness(input image.Image, precision int) uint16 {
 	var sum, pixels uint64
-	var precision int
-	precision = 4
 	input = imaging.Grayscale(input)
 	for y := input.Bounds().Min.Y; y < input.Bounds().Max.Y; y += precision {
 		for x := input.Bounds().Min.X; x < input.Bounds().Max.X; x += precision {
@@ -58,5 +54,5 @@ func getAverageLuminance(input image.Image) uint64 {
 			}
 		}
 	}
-	return sum / pixels
+	return uint16(sum / pixels)
 }
