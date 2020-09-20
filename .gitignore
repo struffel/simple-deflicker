@@ -4,6 +4,8 @@
 *.dll
 *.so
 *.dylib
+*.dat
+*.db
 
 # Test binary, built with `go test -c`
 *.test
@@ -18,3 +20,5 @@
 *.jpg
 *.png
 *.tiff
+*.tif
+*.gif
