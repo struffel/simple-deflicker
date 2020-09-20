@@ -38,7 +38,7 @@ func main() {
 		var img, _ = imaging.Open("./input/" + f.Name())
 		var imgCorrected = imaging.AdjustGamma(img, float64(average)/float64(brightnessValues[i]))
 		fmt.Print(".")
-		imaging.Save(imgCorrected, "./output/"+filepath.Base(f.Name()))
+		imaging.Save(imgCorrected, "./output/"+filepath.Base(f.Name()), imaging.JPEGQuality(95), imaging.PNGCompressionLevel(0))
 	}
 }
 
