@@ -7,7 +7,6 @@ import (
 	"log"
 	"path/filepath"
 	"runtime"
-	"time"
 
 	"github.com/disintegration/imaging"
 )
@@ -27,28 +26,27 @@ func main() {
 	fmt.Printf("Number of Files: %v\n", numberOfFiles)
 
 	brightnessValues := make([]uint16, numberOfFiles)
-
-	var ongoingThreads = 0
 	fmt.Printf("Using %v threads...\n", maxThreads)
 
+	tokens := make(chan bool, maxThreads)
+	for i := 0; i < maxThreads; i++ {
+		tokens <- true
+	}
 	for i, file := range files {
-		for ongoingThreads >= maxThreads {
-			time.Sleep(time.Millisecond * 5)
-		}
-		ongoingThreads++
+		_ = <-tokens
 		go func(i int, fileName string) {
 			defer func() {
-				ongoingThreads--
+				tokens <- true
 			}()
 			if filepath.Ext(fileName) == ".JPG" {
 				var img, _ = imaging.Open(fileName)
-				brightnessValues[i] = getAverageImageBrightness(img, 8)
+				brightnessValues[i] = getAverageImageBrightness(img, 32)
 				fmt.Printf("%v | %v\n", fileName, brightnessValues[i])
 			}
 		}(i, "./input/"+file.Name())
 	}
-	for ongoingThreads > 0 {
-		time.Sleep(time.Millisecond * 5)
+	for i := 0; i < maxThreads; i++ {
+		_ = <-tokens
 	}
 	fmt.Println("All threads finished!")
 
@@ -63,15 +61,15 @@ func main() {
 	var averageBrightness uint16 = uint16(float64(sumBrightness) / float64(numberOfFiles))
 
 	fmt.Printf("AVG Brightness: %v\n", averageBrightness)
-
+	tokens = make(chan bool, maxThreads)
+	for i := 0; i < maxThreads; i++ {
+		tokens <- true
+	}
 	for i, file := range files {
-		for ongoingThreads >= maxThreads {
-			time.Sleep(time.Millisecond * 5)
-		}
-		ongoingThreads++
+		_ = <-tokens
 		go func(i int, fileName string) {
 			defer func() {
-				ongoingThreads--
+				tokens <- true
 			}()
 			if filepath.Ext(fileName) == ".JPG" {
 				var img, _ = imaging.Open(fileName)
@@ -82,8 +80,8 @@ func main() {
 			}
 		}(i, "./input/"+file.Name())
 	}
-	for ongoingThreads > 0 {
-		time.Sleep(time.Millisecond * 5)
+	for i := 0; i < maxThreads; i++ {
+		_ = <-tokens
 	}
 	fmt.Println("All threads finished!")
 }
