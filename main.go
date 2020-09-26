@@ -104,12 +104,11 @@ func main() {
 
 func getAverageImageBrightness(input image.Image, precision int) uint16 {
 	var sum, pixels uint64
-	var inputGray = imaging.Grayscale(input)
-	for y := inputGray.Bounds().Min.Y; y < inputGray.Bounds().Max.Y; y += precision {
-		for x := inputGray.Bounds().Min.X; x < inputGray.Bounds().Max.X; x += precision {
-			col, _, _, alpha := inputGray.At(x, y).RGBA()
-			if alpha > 0 {
-				sum += uint64(col)
+	for y := input.Bounds().Min.Y; y < input.Bounds().Max.Y; y += precision {
+		for x := input.Bounds().Min.X; x < input.Bounds().Max.X; x += precision {
+			r, g, b, a := input.At(x, y).RGBA()
+			if a > 0 {
+				sum += uint64(0.2126*float32(r) + 0.7152*float32(g) + 0.0722*float32(b))
 				pixels++
 			}
 		}
