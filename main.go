@@ -13,8 +13,9 @@ import (
 )
 
 type picture struct {
-	path       string
-	brightness uint16
+	path             string
+	brightness       uint16
+	targetBrightness uint16
 }
 
 func main() {
@@ -35,14 +36,12 @@ func main() {
 	for i, file := range files {
 		var extension = strings.ToLower(filepath.Ext(file.Name()))
 		if extension == ".jpg" || extension == ".png" {
-			pictures = append(pictures, picture{filepath.Join(inputFolder, file.Name()), 0})
+			pictures = append(pictures, picture{filepath.Join(inputFolder, file.Name()), 0, 0})
 			fmt.Printf("%v\n", pictures[i].path)
 		}
 	}
-	//var numberOfPictures=len(pictures)
-	//fmt.Printf("Number of Pictures: %v\n", numberOfPictures)
 
-	//Prepare array for brightness values and token channel
+	//Prepare token channel
 	fmt.Printf("Using %v threads...\n", maxThreads)
 	tokens := make(chan bool, maxThreads)
 
@@ -75,6 +74,30 @@ func main() {
 	var averageBrightness uint16 = uint16(float64(sum) / float64(len(pictures)))
 	fmt.Printf("Average Brightness: %v\n", averageBrightness)
 
+	//Calculate rolling average
+	var rollingAverageFrames = 7
+
+	var targetBrightness uint64 = 0
+	if rollingAverageFrames < 1 {
+		for i := range pictures {
+			targetBrightness += uint64(pictures[i].brightness)
+		}
+		targetBrightness /= uint64(len(pictures))
+		for i := range pictures {
+			pictures[i].targetBrightness = uint16(targetBrightness)
+		}
+	} else {
+		for i := range pictures {
+			var start = maximum(i-rollingAverageFrames, 0)
+			var end = minimum(i+rollingAverageFrames, len(pictures)-1)
+			for j := start; j <= end; j++ {
+				targetBrightness += uint64(pictures[j].brightness)
+			}
+			targetBrightness /= uint64(end - start) //Throws odd results
+			pictures[i].targetBrightness = uint16(targetBrightness)
+		}
+	}
+
 	//Create token channel and fill it with inital tokens
 	tokens = make(chan bool, maxThreads)
 	for i := 0; i < maxThreads; i++ {
@@ -89,7 +112,7 @@ func main() {
 				tokens <- true
 			}()
 			var img, _ = imaging.Open(pictures[i].path)
-			var gamma = float64(averageBrightness) / float64(pictures[i].brightness)
+			var gamma = float64(pictures[i].targetBrightness) / float64(pictures[i].brightness)
 			var imgCorrected = imaging.AdjustGamma(img, gamma)
 			imaging.Save(imgCorrected, "./output/"+filepath.Base(pictures[i].path), imaging.JPEGQuality(95), imaging.PNGCompressionLevel(0))
 			fmt.Printf("%v | %v\n", pictures[i].path, gamma)
