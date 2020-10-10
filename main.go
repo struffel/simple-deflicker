@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"image"
 	"io/ioutil"
 	"log"
@@ -10,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/disintegration/imaging"
+	"github.com/gosuri/uiprogress"
 )
 
 type picture struct {
@@ -18,14 +18,15 @@ type picture struct {
 	targetBrightness uint16
 }
 
+var pictures []picture
+
 func main() {
-	fmt.Println("Starting...")
+
+	uiprogress.Start() // start rendering
 
 	//Set number of CPU cores to use
 	var maxThreads = runtime.NumCPU()
 	runtime.GOMAXPROCS(maxThreads)
-
-	var pictures []picture
 
 	//Get list of files
 	var inputFolder = "./input/"
@@ -33,18 +34,16 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	for i, file := range files {
+	//Prepare array of pictures
+	for _, file := range files {
 		var extension = strings.ToLower(filepath.Ext(file.Name()))
 		if extension == ".jpg" || extension == ".png" {
 			pictures = append(pictures, picture{filepath.Join(inputFolder, file.Name()), 0, 0})
-			fmt.Printf("%v\n", pictures[i].path)
 		}
 	}
-
+	progressBars := createProgressBars()
 	//Prepare token channel
-	fmt.Printf("Using %v threads...\n", maxThreads)
 	tokens := make(chan bool, maxThreads)
-
 	//Fill token channel with initial values and start the analysis loop
 	for i := 0; i < maxThreads; i++ {
 		tokens <- true
@@ -53,30 +52,19 @@ func main() {
 		_ = <-tokens
 		go func(i int) {
 			defer func() {
+				progressBars["ANALYZE"].Incr()
 				tokens <- true
 			}()
 			var img, _ = imaging.Open(pictures[i].path)
 			pictures[i].brightness = getAverageImageBrightness(img, 16)
-			fmt.Printf("%v | %v\n", pictures[i].path, pictures[i].brightness)
 		}(i)
-
 	}
 	for i := 0; i < maxThreads; i++ {
 		_ = <-tokens
 	}
-	fmt.Println("All threads finished!")
 
-	//Calculate the average brightness
-	var sum uint64 = 0
-	for i := range pictures {
-		sum += uint64(pictures[i].brightness)
-	}
-	var averageBrightness uint16 = uint16(float64(sum) / float64(len(pictures)))
-	fmt.Printf("Average Brightness: %v\n", averageBrightness)
-
-	//Calculate rolling average
-	var rollingAverageFrames = 7
-
+	//Calculate global or rolling average
+	var rollingAverageFrames = 0
 	var targetBrightness uint64 = 0
 	if rollingAverageFrames < 1 {
 		for i := range pictures {
@@ -85,16 +73,19 @@ func main() {
 		targetBrightness /= uint64(len(pictures))
 		for i := range pictures {
 			pictures[i].targetBrightness = uint16(targetBrightness)
+			progressBars["PREPARE"].Incr()
 		}
 	} else {
 		for i := range pictures {
+			targetBrightness = 0
 			var start = maximum(i-rollingAverageFrames, 0)
 			var end = minimum(i+rollingAverageFrames, len(pictures)-1)
 			for j := start; j <= end; j++ {
 				targetBrightness += uint64(pictures[j].brightness)
 			}
-			targetBrightness /= uint64(end - start) //Throws odd results
+			targetBrightness /= uint64(end - start + 1) //Throws odd results
 			pictures[i].targetBrightness = uint16(targetBrightness)
+			progressBars["PREPARE"].Incr()
 		}
 	}
 
@@ -109,20 +100,19 @@ func main() {
 		_ = <-tokens
 		go func(i int) {
 			defer func() {
+				progressBars["ADJUST"].Incr()
 				tokens <- true
 			}()
 			var img, _ = imaging.Open(pictures[i].path)
 			var gamma = float64(pictures[i].targetBrightness) / float64(pictures[i].brightness)
 			var imgCorrected = imaging.AdjustGamma(img, gamma)
 			imaging.Save(imgCorrected, "./output/"+filepath.Base(pictures[i].path), imaging.JPEGQuality(95), imaging.PNGCompressionLevel(0))
-			fmt.Printf("%v | %v\n", pictures[i].path, gamma)
 		}(i)
 	}
 	for i := 0; i < maxThreads; i++ {
 		_ = <-tokens
 	}
-	fmt.Println("All threads finished!")
-
+	uiprogress.Stop()
 }
 
 func getAverageImageBrightness(input image.Image, precision int) uint16 {
