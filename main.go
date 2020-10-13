@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"image"
 	"io/ioutil"
 	"log"
@@ -20,17 +21,29 @@ type picture struct {
 
 var pictures []picture
 
+var config struct {
+	source         string
+	destination    string
+	rollingaverage int
+	threads        int
+}
+
 func main() {
+
+	flag.StringVar(&config.source, "source", ".", "Source folder")
+	flag.StringVar(&config.destination, "destination", ".", "Destination folder")
+	flag.IntVar(&config.rollingaverage, "rollingaverage", 10, "Number of frames to use for rolling average. 0 disables it.")
+	flag.IntVar(&config.threads, "threads", runtime.NumCPU(), "Number of threads to use")
+	flag.Parse()
 
 	uiprogress.Start() // start rendering
 
 	//Set number of CPU cores to use
-	var maxThreads = runtime.NumCPU()
-	runtime.GOMAXPROCS(maxThreads)
+	var maxThreads = runtime.GOMAXPROCS(config.threads)
 
 	//Get list of files
-	var inputFolder = "./input/"
-	files, err := ioutil.ReadDir(inputFolder)
+	//var inputFolder = "./input/"
+	files, err := ioutil.ReadDir(config.source)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -38,7 +51,7 @@ func main() {
 	for _, file := range files {
 		var extension = strings.ToLower(filepath.Ext(file.Name()))
 		if extension == ".jpg" || extension == ".png" {
-			pictures = append(pictures, picture{filepath.Join(inputFolder, file.Name()), 0, 0})
+			pictures = append(pictures, picture{filepath.Join(config.source, file.Name()), 0, 0})
 		}
 	}
 	progressBars := createProgressBars()
@@ -56,7 +69,7 @@ func main() {
 				tokens <- true
 			}()
 			var img, _ = imaging.Open(pictures[i].path)
-			pictures[i].brightness = getAverageImageBrightness(img, 16)
+			pictures[i].brightness = getAverageImageBrightness(img, 8)
 		}(i)
 	}
 	for i := 0; i < maxThreads; i++ {
@@ -64,9 +77,8 @@ func main() {
 	}
 
 	//Calculate global or rolling average
-	var rollingAverageFrames = 0
 	var targetBrightness uint64 = 0
-	if rollingAverageFrames < 1 {
+	if config.rollingaverage < 1 {
 		for i := range pictures {
 			targetBrightness += uint64(pictures[i].brightness)
 		}
@@ -78,8 +90,8 @@ func main() {
 	} else {
 		for i := range pictures {
 			targetBrightness = 0
-			var start = maximum(i-rollingAverageFrames, 0)
-			var end = minimum(i+rollingAverageFrames, len(pictures)-1)
+			var start = maximum(i-config.rollingaverage, 0)
+			var end = minimum(i+config.rollingaverage, len(pictures)-1)
 			for j := start; j <= end; j++ {
 				targetBrightness += uint64(pictures[j].brightness)
 			}
@@ -106,7 +118,7 @@ func main() {
 			var img, _ = imaging.Open(pictures[i].path)
 			var gamma = float64(pictures[i].targetBrightness) / float64(pictures[i].brightness)
 			var imgCorrected = imaging.AdjustGamma(img, gamma)
-			imaging.Save(imgCorrected, "./output/"+filepath.Base(pictures[i].path), imaging.JPEGQuality(95), imaging.PNGCompressionLevel(0))
+			imaging.Save(imgCorrected, filepath.Join(config.destination, filepath.Base(pictures[i].path)), imaging.JPEGQuality(95), imaging.PNGCompressionLevel(0))
 		}(i)
 	}
 	for i := 0; i < maxThreads; i++ {

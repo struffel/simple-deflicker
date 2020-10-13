@@ -13,9 +13,9 @@ func createProgressBars() map[string]*uiprogress.Bar {
 	progressBars["PREPARE"] = uiprogress.AddBar(len(pictures)).PrependCompleted().PrependElapsed()
 	progressBars["ADJUST"] = uiprogress.AddBar(len(pictures)).PrependCompleted().PrependElapsed()
 
-	progressBars["ANALYZE"].Width = 10
-	progressBars["PREPARE"].Width = 10
-	progressBars["ADJUST"].Width = 10
+	progressBars["ANALYZE"].Width = 20
+	progressBars["PREPARE"].Width = 20
+	progressBars["ADJUST"].Width = 20
 
 	progressBarFunctionAnalyze := func(b *uiprogress.Bar) string {
 		if b.Current() == 0 {
