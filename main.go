@@ -39,7 +39,7 @@ func main() {
 	uiprogress.Start() // start rendering
 
 	//Set number of CPU cores to use
-	var maxThreads = runtime.GOMAXPROCS(config.threads)
+	runtime.GOMAXPROCS(config.threads)
 
 	//Get list of files
 	//var inputFolder = "./input/"
@@ -56,9 +56,9 @@ func main() {
 	}
 	progressBars := createProgressBars()
 	//Prepare token channel
-	tokens := make(chan bool, maxThreads)
+	tokens := make(chan bool, config.threads)
 	//Fill token channel with initial values and start the analysis loop
-	for i := 0; i < maxThreads; i++ {
+	for i := 0; i < config.threads; i++ {
 		tokens <- true
 	}
 	for i := range pictures {
@@ -72,7 +72,7 @@ func main() {
 			pictures[i].brightness = getAverageImageBrightness(img, 8)
 		}(i)
 	}
-	for i := 0; i < maxThreads; i++ {
+	for i := 0; i < config.threads; i++ {
 		_ = <-tokens
 	}
 
@@ -102,8 +102,8 @@ func main() {
 	}
 
 	//Create token channel and fill it with inital tokens
-	tokens = make(chan bool, maxThreads)
-	for i := 0; i < maxThreads; i++ {
+	tokens = make(chan bool, config.threads)
+	for i := 0; i < config.threads; i++ {
 		tokens <- true
 	}
 
@@ -121,7 +121,7 @@ func main() {
 			imaging.Save(imgCorrected, filepath.Join(config.destination, filepath.Base(pictures[i].path)), imaging.JPEGQuality(95), imaging.PNGCompressionLevel(0))
 		}(i)
 	}
-	for i := 0; i < maxThreads; i++ {
+	for i := 0; i < config.threads; i++ {
 		_ = <-tokens
 	}
 	uiprogress.Stop()
