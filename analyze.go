@@ -35,6 +35,23 @@ func getRequiredGamma(input image.Image, targetBrightness uint16, precision int)
 	return sum / float64(pixels)
 }
 
+func getRequiredExposure(input image.Image, targetBrightness uint16, precision int) float64 {
+	var sum float64
+	var pixels uint64
+	for y := input.Bounds().Min.Y; y < input.Bounds().Max.Y; y += precision {
+		for x := input.Bounds().Min.X; x < input.Bounds().Max.X; x += precision {
+			r, g, b, a := input.At(x, y).RGBA()
+			if a > 0 {
+				brightness := uint64(0.2126*float32(r) + 0.7152*float32(g) + 0.0722*float32(b))
+				//brightness := uint64((r + g + b) / 3)
+				sum += math.Log2(float64(targetBrightness) / float64(brightness))
+				pixels++
+			}
+		}
+	}
+	return sum / float64(pixels)
+}
+
 func getAverageImageKelvin(input image.Image, precision int) uint16 {
 	var sum, pixels uint64
 	for y := input.Bounds().Min.Y; y < input.Bounds().Max.Y; y += precision {

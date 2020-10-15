@@ -138,10 +138,19 @@ func main() {
 				tokens <- true
 			}()
 			var img, _ = imaging.Open(pictures[i].path)
-			//var gamma = float64(pictures[i].targetBrightness) / float64(pictures[i].brightness)
-			//var gamma = math.Log(float64(pictures[i].brightness)/65536.0) / math.Log(float64(pictures[i].brightness)/65536.0)
-			var gamma = getRequiredGamma(img, pictures[i].targetBrightness, 16)
+			var gamma = getRequiredGamma(img, pictures[i].targetBrightness, 4)
 			var imgCorrected = imaging.AdjustGamma(img, gamma)
+
+			/*var exposure = getRequiredExposure(img, pictures[i].targetBrightness, 16)
+			var imgCorrected = imaging.AdjustFunc(img, func(c color.NRGBA) color.NRGBA {
+				c.R = uint8(float64(c.R) * math.Pow(2.0, exposure))
+				c.G = uint8(float64(c.G) * math.Pow(2.0, exposure))
+				c.B = uint8(float64(c.B) * math.Pow(2.0, exposure))
+				return c
+			})*/
+
+			//imgCorrected = imaging.AdjustContrast(imgCorrected, (1-math.Pow(2.0, exposure))*100.0)
+			//imgCorrected = imaging.AdjustSigmoid(imgCorrected, 1.0-gamma, -gamma)
 			//fmt.Printf("%v|%v|%v\n", pictures[i].targetBrightness, getAverageImageBrightness(imgCorrected, 8), int64(pictures[i].targetBrightness)-int64(getAverageImageBrightness(imgCorrected, 8)))
 			imaging.Save(imgCorrected, filepath.Join(config.destination, filepath.Base(pictures[i].path)), imaging.JPEGQuality(95), imaging.PNGCompressionLevel(0))
 		}(i)
