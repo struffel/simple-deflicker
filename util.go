@@ -13,3 +13,13 @@ func maximum(a int, b int) int {
 	}
 	return b
 }
+
+func clamp(a float64, min float64, max float64) float64 {
+	if a < min {
+		return min
+	}
+	if a > max {
+		return max
+	}
+	return a
+}

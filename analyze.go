@@ -27,7 +27,7 @@ func getRequiredGamma(input image.Image, targetBrightness uint16, precision int)
 			r, g, b, a := input.At(x, y).RGBA()
 			if a > 0 {
 				brightness := uint64(0.2126*float32(r) + 0.7152*float32(g) + 0.0722*float32(b))
-				sum += math.Log(float64(brightness)/65536.0) / math.Log(float64(targetBrightness)/65536.0)
+				sum += math.Log(clamp(float64(brightness), 1.0, 65535.0)/65536.0) / math.Log(clamp(float64(targetBrightness), 1.0, 65535.0)/65536.0)
 				pixels++
 			}
 		}
