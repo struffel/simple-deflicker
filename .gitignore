@@ -22,3 +22,6 @@
 *.tiff
 *.tif
 *.gif
+
+#blender
+*.blend
