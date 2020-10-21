@@ -13,11 +13,13 @@ import (
 )
 
 type picture struct {
-	path             string
-	brightness       float64
-	contrast         float64
-	targetBrightness float64
-	targetContrast   float64
+	path                    string
+	currentIntensity        float64
+	currentContrast         float64
+	targetBrightness        float64
+	targetContrast          float64
+	requiredGammaChange     float64
+	requiredIntensityChange float64
 }
 
 var pictures []picture
@@ -43,7 +45,6 @@ func main() {
 	runtime.GOMAXPROCS(config.threads)
 
 	//Get list of files
-	//var inputFolder = "./input/"
 	files, err := ioutil.ReadDir(config.source)
 	if err != nil {
 		log.Fatal(err)
@@ -52,7 +53,7 @@ func main() {
 	for _, file := range files {
 		var extension = strings.ToLower(filepath.Ext(file.Name()))
 		if extension == ".jpg" || extension == ".png" {
-			pictures = append(pictures, picture{filepath.Join(config.source, file.Name()), 0, 0, 0, 0})
+			pictures = append(pictures, picture{filepath.Join(config.source, file.Name()), 0, 0, 0, 0, 0, 0})
 		}
 	}
 	progressBars := createProgressBars()
@@ -71,8 +72,8 @@ func main() {
 				tokens <- true
 			}()
 			var img, _ = imaging.Open(pictures[i].path)
-			pictures[i].brightness = measureIntensity(img, 16)
-			pictures[i].contrast = measureContrast(img, pictures[i].brightness, 16)
+			pictures[i].currentIntensity = measureIntensity(img, 16)
+			pictures[i].currentContrast = measureContrast(img, pictures[i].currentIntensity, 16)
 			//pictures[i].kelvin = getAverageImageKelvin(img, 8)
 		}(i)
 	}
@@ -85,8 +86,8 @@ func main() {
 	var targetContrast float64 = 0
 	if config.rollingaverage < 1 {
 		for i := range pictures {
-			targetBrightness += pictures[i].brightness
-			targetContrast += pictures[i].contrast
+			targetBrightness += pictures[i].currentIntensity
+			targetContrast += pictures[i].currentContrast
 		}
 		targetBrightness /= float64(len(pictures))
 		targetContrast /= float64(len(pictures))
@@ -101,8 +102,8 @@ func main() {
 			var start = maximum(i-config.rollingaverage, 0)
 			var end = minimum(i+config.rollingaverage, len(pictures)-1)
 			for j := start; j <= end; j++ {
-				targetBrightness += pictures[j].brightness
-				targetContrast += pictures[j].contrast
+				targetBrightness += pictures[j].currentIntensity
+				targetContrast += pictures[j].currentContrast
 			}
 			targetBrightness /= float64(end - start + 2)
 			targetContrast /= float64(end - start + 2)
@@ -126,15 +127,15 @@ func main() {
 			}()
 			var img, _ = imaging.Open(pictures[i].path)
 
-			var gamma = calculateGammaDifference(img, pictures[i].targetBrightness, 2)
-			img = imaging.AdjustGamma(img, gamma)
+			pictures[i].requiredGammaChange = calculateGammaDifference(img, pictures[i].targetBrightness, 2)
+			img = imaging.AdjustGamma(img, pictures[i].requiredGammaChange)
 
-			pictures[i].brightness = measureIntensity(img, 2)
-			pictures[i].contrast = measureContrast(img, pictures[i].brightness, 2)
-			img = imaging.AdjustContrast(img, 100*(pictures[i].targetContrast/pictures[i].contrast-1))
+			pictures[i].currentIntensity = measureIntensity(img, 2)
+			pictures[i].currentContrast = measureContrast(img, pictures[i].currentIntensity, 2)
+			img = imaging.AdjustContrast(img, 100*(pictures[i].targetContrast/pictures[i].currentContrast-1))
 
-			var brightness = calculateIntensityDifference(img, pictures[i].targetBrightness, 2)
-			img = imaging.AdjustBrightness(img, brightness/65536*100)
+			pictures[i].requiredIntensityChange = calculateIntensityDifference(img, pictures[i].targetBrightness, 2)
+			img = imaging.AdjustBrightness(img, pictures[i].requiredIntensityChange/65536*100)
 
 			imaging.Save(img, filepath.Join(config.destination, filepath.Base(pictures[i].path)), imaging.JPEGQuality(95), imaging.PNGCompressionLevel(0))
 		}(i)
