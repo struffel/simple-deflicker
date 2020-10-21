@@ -14,9 +14,9 @@ import (
 
 type picture struct {
 	path             string
-	brightness       uint16
+	brightness       float64
 	contrast         float64
-	targetBrightness uint16
+	targetBrightness float64
 	targetContrast   float64
 	requiredGamma    float64
 }
@@ -82,17 +82,17 @@ func main() {
 	}
 
 	//Calculate global or rolling average
-	var targetBrightness uint64 = 0
+	var targetBrightness float64 = 0
 	var targetContrast float64 = 0
 	if config.rollingaverage < 1 {
 		for i := range pictures {
-			targetBrightness += uint64(pictures[i].brightness)
+			targetBrightness += pictures[i].brightness
 			targetContrast += pictures[i].contrast
 		}
-		targetBrightness /= uint64(len(pictures))
+		targetBrightness /= float64(len(pictures))
 		targetContrast /= float64(len(pictures))
 		for i := range pictures {
-			pictures[i].targetBrightness = uint16(targetBrightness)
+			pictures[i].targetBrightness = targetBrightness
 			pictures[i].targetContrast = targetContrast
 		}
 	} else {
@@ -102,12 +102,12 @@ func main() {
 			var start = maximum(i-config.rollingaverage, 0)
 			var end = minimum(i+config.rollingaverage, len(pictures)-1)
 			for j := start; j <= end; j++ {
-				targetBrightness += uint64(pictures[j].brightness)
+				targetBrightness += pictures[j].brightness
 				targetContrast += pictures[j].contrast
 			}
-			targetBrightness /= uint64(end - start + 2)
+			targetBrightness /= float64(end - start + 2)
 			targetContrast /= float64(end - start + 2)
-			pictures[i].targetBrightness = uint16(targetBrightness)
+			pictures[i].targetBrightness = targetBrightness
 			pictures[i].targetContrast = targetContrast
 		}
 	}
