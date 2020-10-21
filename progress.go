@@ -1,7 +1,7 @@
 package main
 
 import (
-	"path/filepath"
+	"fmt"
 
 	"github.com/gosuri/uiprogress"
 )
@@ -9,37 +9,25 @@ import (
 func createProgressBars() map[string]*uiprogress.Bar {
 	progressBars := make(map[string]*uiprogress.Bar)
 
-	progressBars["ANALYZE"] = uiprogress.AddBar(len(pictures)).PrependCompleted().PrependElapsed()
-	progressBars["PREPARE"] = uiprogress.AddBar(len(pictures)).PrependCompleted().PrependElapsed()
+	progressBars["INITIALIZE"] = uiprogress.AddBar(len(pictures)).PrependCompleted().PrependElapsed()
 	progressBars["ADJUST"] = uiprogress.AddBar(len(pictures)).PrependCompleted().PrependElapsed()
 
-	progressBars["ANALYZE"].Width = 20
-	progressBars["PREPARE"].Width = 20
+	progressBars["INITIALIZE"].Width = 20
 	progressBars["ADJUST"].Width = 20
 
-	progressBarFunctionAnalyze := func(b *uiprogress.Bar) string {
-		if b.Current() == 0 {
-			return "Analyzing"
-		}
-		return "Analyzing " + filepath.Base(pictures[b.Current()-1].path)
+	progressBarFunction := func(b *uiprogress.Bar, step string) string {
+		return fmt.Sprintf("%-15v %-5v/%-5v", step, b.Current(), b.Total)
 	}
 
-	progressBarFunctionPrepare := func(b *uiprogress.Bar) string {
-		if b.Current() == 0 {
-			return "Preparing"
-		}
-		return "Preparing " + filepath.Base(pictures[b.Current()-1].path)
+	progressBarFunctionAnalyze := func(b *uiprogress.Bar) string {
+		return progressBarFunction(b, "Initializing")
 	}
 
 	progressBarFunctionAdjust := func(b *uiprogress.Bar) string {
-		if b.Current() == 0 {
-			return "Adjusting"
-		}
-		return "Adjusting " + filepath.Base(pictures[b.Current()-1].path)
+		return progressBarFunction(b, "Adjusting")
 	}
 
-	progressBars["ANALYZE"].AppendFunc(progressBarFunctionAnalyze)
-	progressBars["PREPARE"].AppendFunc(progressBarFunctionPrepare)
+	progressBars["INITIALIZE"].AppendFunc(progressBarFunctionAnalyze)
 	progressBars["ADJUST"].AppendFunc(progressBarFunctionAdjust)
 
 	return progressBars

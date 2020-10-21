@@ -68,7 +68,7 @@ func main() {
 		_ = <-tokens
 		go func(i int) {
 			defer func() {
-				progressBars["ANALYZE"].Incr()
+				progressBars["INITIALIZE"].Incr()
 				tokens <- true
 			}()
 			var img, _ = imaging.Open(pictures[i].path)
