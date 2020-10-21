@@ -23,12 +23,13 @@ func measureIntensity(input image.Image, precision int) float64 {
 func measureContrast(input image.Image, averageIntensity float64, precision int) float64 {
 	var sum float64
 	var pixels uint64
-	var averageIntensityNormalized = averageIntensity / 65536.0
+	var averageIntensityNormalized float64 = averageIntensity / 65536.0
+	var intensityNormalized float64
 	for y := input.Bounds().Min.Y; y < input.Bounds().Max.Y; y += precision {
 		for x := input.Bounds().Min.X; x < input.Bounds().Max.X; x += precision {
 			r, g, b, a := input.At(x, y).RGBA()
 			if a > 0 {
-				intensityNormalized := (0.2126*float64(r) + 0.7152*float64(g) + 0.0722*float64(b)) / 65536.0
+				intensityNormalized = (0.2126*float64(r) + 0.7152*float64(g) + 0.0722*float64(b)) / 65536.0
 				sum += math.Pow((intensityNormalized-averageIntensityNormalized)/averageIntensityNormalized, 2.0)
 				pixels++
 			}
@@ -55,21 +56,19 @@ func measureKelvin(input image.Image, precision int) float64 {
 }
 
 func calculateIntensityDifference(input image.Image, targetIntensity float64, precision int) float64 {
-	var sum int64
+	var sum float64
 	var pixels uint64
 	for y := input.Bounds().Min.Y; y < input.Bounds().Max.Y; y += precision {
 		for x := input.Bounds().Min.X; x < input.Bounds().Max.X; x += precision {
 			r, g, b, a := input.At(x, y).RGBA()
 			if a > 0 {
-				intensity := uint64(0.2126*float64(r) + 0.7152*float64(g) + 0.0722*float64(b))
-				if intensity != 0 && intensity != 65536 {
-					sum += int64(targetIntensity) - int64(intensity)
-					pixels++
-				}
+				intensity := 0.2126*float64(r) + 0.7152*float64(g) + 0.0722*float64(b)
+				sum += targetIntensity - intensity
+				pixels++
 			}
 		}
 	}
-	return float64(sum) / float64(pixels)
+	return sum / float64(pixels)
 }
 
 func calculateGammaDifference(input image.Image, targetIntensity float64, precision int) float64 {
@@ -80,10 +79,8 @@ func calculateGammaDifference(input image.Image, targetIntensity float64, precis
 			r, g, b, a := input.At(x, y).RGBA()
 			if a > 0 {
 				intensity := uint64(0.2126*float64(r) + 0.7152*float64(g) + 0.0722*float64(b))
-				if intensity != 0 && intensity != 65536 {
-					sum += math.Log(clamp(float64(intensity), 1.0, 65535.0)/65536.0) / math.Log(clamp(float64(targetIntensity), 1.0, 65535.0)/65536.0)
-					pixels++
-				}
+				sum += math.Log(clamp(float64(intensity), 1.0, 65535.0)/65536.0) / math.Log(clamp(float64(targetIntensity), 1.0, 65535.0)/65536.0)
+				pixels++
 			}
 		}
 	}
