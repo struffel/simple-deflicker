@@ -15,7 +15,9 @@ import (
 type picture struct {
 	path             string
 	brightness       uint16
+	contrast         float64
 	targetBrightness uint16
+	targetContrast   float64
 	requiredGamma    float64
 }
 
@@ -51,7 +53,7 @@ func main() {
 	for _, file := range files {
 		var extension = strings.ToLower(filepath.Ext(file.Name()))
 		if extension == ".jpg" || extension == ".png" {
-			pictures = append(pictures, picture{filepath.Join(config.source, file.Name()), 0, 0, 0.0})
+			pictures = append(pictures, picture{filepath.Join(config.source, file.Name()), 0, 0, 0, 0, 0})
 		}
 	}
 	progressBars := createProgressBars()
@@ -70,7 +72,8 @@ func main() {
 				tokens <- true
 			}()
 			var img, _ = imaging.Open(pictures[i].path)
-			pictures[i].brightness = getAverageImageBrightness(img, 16)
+			pictures[i].brightness = measureIntensity(img, 16)
+			pictures[i].contrast = measureContrast(img, pictures[i].brightness, 16)
 			//pictures[i].kelvin = getAverageImageKelvin(img, 8)
 		}(i)
 	}
@@ -80,49 +83,34 @@ func main() {
 
 	//Calculate global or rolling average
 	var targetBrightness uint64 = 0
+	var targetContrast float64 = 0
 	if config.rollingaverage < 1 {
 		for i := range pictures {
 			targetBrightness += uint64(pictures[i].brightness)
+			targetContrast += pictures[i].contrast
 		}
 		targetBrightness /= uint64(len(pictures))
+		targetContrast /= float64(len(pictures))
 		for i := range pictures {
 			pictures[i].targetBrightness = uint16(targetBrightness)
+			pictures[i].targetContrast = targetContrast
 		}
 	} else {
 		for i := range pictures {
 			targetBrightness = 0
+			targetContrast = 0.0
 			var start = maximum(i-config.rollingaverage, 0)
 			var end = minimum(i+config.rollingaverage, len(pictures)-1)
 			for j := start; j <= end; j++ {
 				targetBrightness += uint64(pictures[j].brightness)
+				targetContrast += pictures[j].contrast
 			}
-			targetBrightness /= uint64(end - start + 1)
+			targetBrightness /= uint64(end - start + 2)
+			targetContrast /= float64(end - start + 2)
 			pictures[i].targetBrightness = uint16(targetBrightness)
+			pictures[i].targetContrast = targetContrast
 		}
 	}
-
-	/*//Create token channel and fill it with inital tokens
-	tokens = make(chan bool, config.threads)
-	for i := 0; i < config.threads; i++ {
-		tokens <- true
-	}
-
-	//Run the loop for gamma calculation
-	for i := range pictures {
-		_ = <-tokens
-		go func(i int) {
-			defer func() {
-				progressBars["PREPARE"].Incr()
-				tokens <- true
-			}()
-			var img, _ = imaging.Open(pictures[i].path)
-			pictures[i].requiredGamma = getRequiredGamma(img, pictures[i].targetBrightness, 16)
-		}(i)
-	}
-	for i := 0; i < config.threads; i++ {
-		_ = <-tokens
-	}*/
-
 	//Create token channel and fill it with inital tokens
 	tokens = make(chan bool, config.threads)
 	for i := 0; i < config.threads; i++ {
@@ -138,21 +126,25 @@ func main() {
 				tokens <- true
 			}()
 			var img, _ = imaging.Open(pictures[i].path)
-			var gamma = getRequiredGamma(img, pictures[i].targetBrightness, 4)
-			var imgCorrected = imaging.AdjustGamma(img, gamma)
 
-			/*var exposure = getRequiredExposure(img, pictures[i].targetBrightness, 16)
-			var imgCorrected = imaging.AdjustFunc(img, func(c color.NRGBA) color.NRGBA {
-				c.R = uint8(float64(c.R) * math.Pow(2.0, exposure))
-				c.G = uint8(float64(c.G) * math.Pow(2.0, exposure))
-				c.B = uint8(float64(c.B) * math.Pow(2.0, exposure))
-				return c
-			})*/
+			//------------
+			var gamma = calculateGammaDifference(img, pictures[i].targetBrightness, 2)
+			img = imaging.AdjustGamma(img, gamma)
 
+			pictures[i].brightness = measureIntensity(img, 2)
+			pictures[i].contrast = measureContrast(img, pictures[i].brightness, 2)
+			img = imaging.AdjustContrast(img, 100*(pictures[i].targetContrast/pictures[i].contrast-1))
+			//fmt.Printf("%v|%v|%v\n", pictures[i].contrast, pictures[i].targetContrast, 100*(pictures[i].targetContrast/pictures[i].contrast-1))
+			//img = imaging.AdjustSigmoid(img, float64(pictures[i].brightness)/65536.0, math.E*(pictures[i].targetContrast/pictures[i].contrast-1))
+
+			var brightness = calculateIntensityDifference(img, pictures[i].targetBrightness, 2)
+			img = imaging.AdjustBrightness(img, brightness/65536*100)
+
+			//fmt.Printf("%v|%v\n", pictures[i].contrast, 100*(1.0+pictures[i].contrast-pictures[i].targetContrast))
 			//imgCorrected = imaging.AdjustContrast(imgCorrected, (1-math.Pow(2.0, exposure))*100.0)
 			//imgCorrected = imaging.AdjustSigmoid(imgCorrected, 1.0-gamma, -gamma)
-			//fmt.Printf("%v|%v|%v\n", pictures[i].targetBrightness, getAverageImageBrightness(imgCorrected, 8), int64(pictures[i].targetBrightness)-int64(getAverageImageBrightness(imgCorrected, 8)))
-			imaging.Save(imgCorrected, filepath.Join(config.destination, filepath.Base(pictures[i].path)), imaging.JPEGQuality(95), imaging.PNGCompressionLevel(0))
+			//fmt.Printf("%v|%v|%v\n", pictures[i].targetBrightness, measureIntensity(imgCorrected, 8), int64(pictures[i].targetBrightness)-int64(measureIntensity(imgCorrected, 8)))
+			imaging.Save(img, filepath.Join(config.destination, filepath.Base(pictures[i].path)), imaging.JPEGQuality(95), imaging.PNGCompressionLevel(0))
 		}(i)
 	}
 	for i := 0; i < config.threads; i++ {
