@@ -47,13 +47,16 @@ func main() {
 	//Get list of files
 	files, err := ioutil.ReadDir(config.source)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("'%v': %v", config.source, err)
 	}
 	//Prepare array of pictures
 	for _, file := range files {
+		var fullPath = filepath.Join(config.source, file.Name())
 		var extension = strings.ToLower(filepath.Ext(file.Name()))
 		if extension == ".jpg" || extension == ".png" {
-			pictures = append(pictures, picture{filepath.Join(config.source, file.Name()), 0, 0, 0, 0, 0, 0})
+			pictures = append(pictures, picture{fullPath, 0, 0, 0, 0, 0, 0})
+		} else {
+			log.Printf("'%v': ignoring file with unsupported extension", fullPath)
 		}
 	}
 	progressBars := createProgressBars()
@@ -71,7 +74,10 @@ func main() {
 				progressBars["INITIALIZE"].Incr()
 				tokens <- true
 			}()
-			var img, _ = imaging.Open(pictures[i].path)
+			var img, err = imaging.Open(pictures[i].path)
+			if err != nil {
+				log.Fatalf("'%v': %v", pictures[i].path, err)
+			}
 			pictures[i].currentIntensity = measureIntensity(img, 16)
 			pictures[i].currentContrast = measureContrast(img, pictures[i].currentIntensity, 16)
 			//pictures[i].kelvin = getAverageImageKelvin(img, 8)
