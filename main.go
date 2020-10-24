@@ -9,17 +9,17 @@ import (
 	"strings"
 
 	"github.com/disintegration/imaging"
-	"github.com/gosuri/uiprogress"
 )
 
 type picture struct {
 	path                    string
 	currentIntensity        float64
 	currentContrast         float64
-	targetBrightness        float64
+	targetIntensity         float64
 	targetContrast          float64
 	requiredGammaChange     float64
 	requiredIntensityChange float64
+	requiredContrastChange  float64
 }
 
 var pictures []picture
@@ -39,7 +39,7 @@ func main() {
 	flag.IntVar(&config.threads, "threads", runtime.NumCPU(), "Number of threads to use")
 	flag.Parse()
 
-	uiprogress.Start() // start rendering
+	//uiprogress.Start() // start rendering
 
 	//Set number of CPU cores to use
 	runtime.GOMAXPROCS(config.threads)
@@ -54,7 +54,7 @@ func main() {
 		var fullPath = filepath.Join(config.source, file.Name())
 		var extension = strings.ToLower(filepath.Ext(file.Name()))
 		if extension == ".jpg" || extension == ".png" {
-			pictures = append(pictures, picture{fullPath, 0, 0, 0, 0, 0, 0})
+			pictures = append(pictures, picture{fullPath, 0, 0, 0, 0, 0, 0, 0})
 		} else {
 			log.Printf("'%v': ignoring file with unsupported extension", fullPath)
 		}
@@ -88,32 +88,32 @@ func main() {
 	}
 
 	//Calculate global or rolling average
-	var targetBrightness float64 = 0
+	var targetIntensity float64 = 0
 	var targetContrast float64 = 0
 	if config.rollingaverage < 1 {
 		for i := range pictures {
-			targetBrightness += pictures[i].currentIntensity
+			targetIntensity += pictures[i].currentIntensity
 			targetContrast += pictures[i].currentContrast
 		}
-		targetBrightness /= float64(len(pictures))
+		targetIntensity /= float64(len(pictures))
 		targetContrast /= float64(len(pictures))
 		for i := range pictures {
-			pictures[i].targetBrightness = targetBrightness
+			pictures[i].targetIntensity = targetIntensity
 			pictures[i].targetContrast = targetContrast
 		}
 	} else {
 		for i := range pictures {
-			targetBrightness = 0
+			targetIntensity = 0
 			targetContrast = 0.0
 			var start = maximum(i-config.rollingaverage, 0)
 			var end = minimum(i+config.rollingaverage, len(pictures)-1)
 			for j := start; j <= end; j++ {
-				targetBrightness += pictures[j].currentIntensity
+				targetIntensity += pictures[j].currentIntensity
 				targetContrast += pictures[j].currentContrast
 			}
-			targetBrightness /= float64(end - start + 2)
+			targetIntensity /= float64(end - start + 2)
 			targetContrast /= float64(end - start + 2)
-			pictures[i].targetBrightness = targetBrightness
+			pictures[i].targetIntensity = targetIntensity
 			pictures[i].targetContrast = targetContrast
 		}
 	}
@@ -122,7 +122,7 @@ func main() {
 	for i := 0; i < config.threads; i++ {
 		tokens <- true
 	}
-
+	printDebug()
 	//Run the loop for image adjustment
 	for i := range pictures {
 		_ = <-tokens
@@ -133,14 +133,15 @@ func main() {
 			}()
 			var img, _ = imaging.Open(pictures[i].path)
 
-			pictures[i].requiredGammaChange = calculateGammaDifference(img, pictures[i].targetBrightness, 2)
+			pictures[i].requiredGammaChange = calculateGammaDifference(img, pictures[i].targetIntensity, 2)
 			img = imaging.AdjustGamma(img, pictures[i].requiredGammaChange)
 
 			pictures[i].currentIntensity = measureIntensity(img, 2)
 			pictures[i].currentContrast = measureContrast(img, pictures[i].currentIntensity, 2)
-			img = imaging.AdjustContrast(img, 100*(pictures[i].targetContrast/pictures[i].currentContrast-1))
+			pictures[i].requiredContrastChange = 100 * (pictures[i].targetContrast/pictures[i].currentContrast - 1) * 0
+			img = imaging.AdjustContrast(img, pictures[i].requiredContrastChange)
 
-			pictures[i].requiredIntensityChange = calculateIntensityDifference(img, pictures[i].targetBrightness, 2)
+			pictures[i].requiredIntensityChange = calculateIntensityDifference(img, pictures[i].targetIntensity, 2)
 			img = imaging.AdjustBrightness(img, pictures[i].requiredIntensityChange/65536*100)
 
 			imaging.Save(img, filepath.Join(config.destination, filepath.Base(pictures[i].path)), imaging.JPEGQuality(95), imaging.PNGCompressionLevel(0))
@@ -149,5 +150,6 @@ func main() {
 	for i := 0; i < config.threads; i++ {
 		_ = <-tokens
 	}
-	uiprogress.Stop()
+	//uiprogress.Stop()
+	printDebug()
 }
