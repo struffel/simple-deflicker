@@ -27,8 +27,8 @@ func clamp(a float64, min float64, max float64) float64 {
 }
 
 func printDebug() {
-	fmt.Printf("%-40v%-20v%-20v%-20v%-20v%-20v\n", "Path", "CurrentBrightness", "TargetBrightness", "RequiredGamma", "RequiredConstrast", "RequiredIntensity")
+	fmt.Printf("%-40v%-25v%-25v%-25v%-25v%-25v%-25v%-25v\n", "Path", "CurrentIntensity", "TargetIntensity", "CurrentContrast", "TargetContrast", "RequiredGammaChange", "RequiredConstrastChange", "RequiredIntensityChange")
 	for _, pic := range pictures {
-		fmt.Printf("%-40v%-20v%-20v%-20v%-20v%-20v\n", pic.path, pic.currentIntensity, pic.targetIntensity, pic.requiredGammaChange, pic.requiredContrastChange, pic.requiredIntensityChange)
+		fmt.Printf("%-40v%-25v%-25v%-25v%-25v%-25v%-25v%-25v\n", pic.path, pic.currentIntensity, pic.targetIntensity, pic.currentContrast, pic.targetContrast, pic.requiredGammaChange, pic.requiredContrastChange, pic.requiredIntensityChange)
 	}
 }

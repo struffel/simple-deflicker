@@ -133,16 +133,18 @@ func main() {
 			}()
 			var img, _ = imaging.Open(pictures[i].path)
 
-			pictures[i].requiredGammaChange = calculateGammaDifference(img, pictures[i].targetIntensity, 2)
+			//pictures[i].requiredGammaChange = calculateGammaDifference(img, pictures[i].targetIntensity, 2)
+			pictures[i].requiredGammaChange = calculateSimpleGammaDifference(pictures[i].currentIntensity, pictures[i].targetIntensity)
 			img = imaging.AdjustGamma(img, pictures[i].requiredGammaChange)
-
-			pictures[i].currentIntensity = measureIntensity(img, 2)
-			pictures[i].currentContrast = measureContrast(img, pictures[i].currentIntensity, 2)
-			pictures[i].requiredContrastChange = 100 * (pictures[i].targetContrast/pictures[i].currentContrast - 1) * 0
-			img = imaging.AdjustContrast(img, pictures[i].requiredContrastChange)
 
 			pictures[i].requiredIntensityChange = calculateIntensityDifference(img, pictures[i].targetIntensity, 2)
 			img = imaging.AdjustBrightness(img, pictures[i].requiredIntensityChange/65536*100)
+
+			pictures[i].currentIntensity = measureIntensity(img, 2)
+			pictures[i].currentContrast = measureContrast(img, pictures[i].currentIntensity, 2)
+			pictures[i].requiredContrastChange = -100 * (pictures[i].targetContrast/pictures[i].currentContrast - 1)
+			//img = imaging.AdjustContrast(img, pictures[i].requiredContrastChange)
+			img = imaging.AdjustSigmoid(img, pictures[i].currentIntensity, pictures[i].requiredGammaChange)
 
 			imaging.Save(img, filepath.Join(config.destination, filepath.Base(pictures[i].path)), imaging.JPEGQuality(95), imaging.PNGCompressionLevel(0))
 		}(i)
