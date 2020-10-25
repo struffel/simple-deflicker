@@ -93,3 +93,17 @@ func calculateGammaDifference(input image.Image, targetIntensity float64, precis
 func calculateSimpleGammaDifference(currentIntensity float64, targetIntensity float64) float64 {
 	return math.Log(clamp(float64(currentIntensity), 1.0, 65535.0)/65536.0) / math.Log(clamp(float64(targetIntensity), 1.0, 65535.0)/65536.0)
 }
+
+func calculateHistogram(input image.Image, precision int) [256]int {
+	var histogram [256]int
+	for y := input.Bounds().Min.Y; y < input.Bounds().Max.Y; y += precision {
+		for x := input.Bounds().Min.X; x < input.Bounds().Max.X; x += precision {
+			r, g, b, a := input.At(x, y).RGBA()
+			if a > 0 {
+				intensity := float64(0.2126*float64(r) + 0.7152*float64(g) + 0.0722*float64(b))
+				histogram[uint8(intensity)]++
+			}
+		}
+	}
+	return histogram
+}

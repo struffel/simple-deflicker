@@ -20,6 +20,8 @@ type picture struct {
 	requiredGammaChange     float64
 	requiredIntensityChange float64
 	requiredContrastChange  float64
+	currentHistogram        [256]int
+	targetHistogram         [256]int
 }
 
 var pictures []picture
@@ -54,7 +56,7 @@ func main() {
 		var fullPath = filepath.Join(config.source, file.Name())
 		var extension = strings.ToLower(filepath.Ext(file.Name()))
 		if extension == ".jpg" || extension == ".png" {
-			pictures = append(pictures, picture{fullPath, 0, 0, 0, 0, 0, 0, 0})
+			pictures = append(pictures, picture{fullPath, 0, 0, 0, 0, 0, 0, 0, int[256], int[256]})
 		} else {
 			log.Printf("'%v': ignoring file with unsupported extension", fullPath)
 		}
