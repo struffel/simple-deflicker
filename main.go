@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"path/filepath"
@@ -94,7 +93,6 @@ func main() {
 		for i := 0; i < 256; i++ {
 			averageHistogram[i] /= uint32(len(pictures))
 		}
-		//fmt.Println(formatHistogram(averageHistogram))
 		for i := range pictures {
 			pictures[i].targetHistogram = averageHistogram
 		}
@@ -130,7 +128,6 @@ func main() {
 			}()
 			var img, _ = imaging.Open(pictures[i].path)
 			lut := generateLutFromHistograms(pictures[i].currentHistogram, pictures[i].targetHistogram)
-			fmt.Println(formatHistogram(lut))
 			img = applyLutToImage(img, lut)
 			imaging.Save(img, filepath.Join(config.destination, filepath.Base(pictures[i].path)), imaging.JPEGQuality(95), imaging.PNGCompressionLevel(0))
 		}(i)
