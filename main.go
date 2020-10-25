@@ -2,8 +2,10 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -12,16 +14,9 @@ import (
 )
 
 type picture struct {
-	path                    string
-	currentIntensity        float64
-	currentContrast         float64
-	targetIntensity         float64
-	targetContrast          float64
-	requiredGammaChange     float64
-	requiredIntensityChange float64
-	requiredContrastChange  float64
-	currentHistogram        [256]int
-	targetHistogram         [256]int
+	path             string
+	currentHistogram [256]int
+	targetHistogram  [256]int
 }
 
 var pictures []picture
@@ -55,8 +50,9 @@ func main() {
 	for _, file := range files {
 		var fullPath = filepath.Join(config.source, file.Name())
 		var extension = strings.ToLower(filepath.Ext(file.Name()))
+		var temp [256]int
 		if extension == ".jpg" || extension == ".png" {
-			pictures = append(pictures, picture{fullPath, 0, 0, 0, 0, 0, 0, 0, int[256], int[256]})
+			pictures = append(pictures, picture{fullPath, temp, temp})
 		} else {
 			log.Printf("'%v': ignoring file with unsupported extension", fullPath)
 		}
@@ -80,51 +76,39 @@ func main() {
 			if err != nil {
 				log.Fatalf("'%v': %v", pictures[i].path, err)
 			}
-			pictures[i].currentIntensity = measureIntensity(img, 16)
-			pictures[i].currentContrast = measureContrast(img, pictures[i].currentIntensity, 16)
+			pictures[i].currentHistogram = calculateHistogram(img)
 			//pictures[i].kelvin = getAverageImageKelvin(img, 8)
 		}(i)
 	}
 	for i := 0; i < config.threads; i++ {
 		_ = <-tokens
 	}
-
 	//Calculate global or rolling average
-	var targetIntensity float64 = 0
-	var targetContrast float64 = 0
+
 	if config.rollingaverage < 1 {
+		var averageHistogram [256]int
 		for i := range pictures {
-			targetIntensity += pictures[i].currentIntensity
-			targetContrast += pictures[i].currentContrast
+			for j := 0; j < 256; j++ {
+				averageHistogram[j] += pictures[i].currentHistogram[j]
+			}
 		}
-		targetIntensity /= float64(len(pictures))
-		targetContrast /= float64(len(pictures))
+		for i := 0; i < 256; i++ {
+			averageHistogram[i] /= len(pictures)
+		}
+		//fmt.Println(formatHistogram(averageHistogram))
 		for i := range pictures {
-			pictures[i].targetIntensity = targetIntensity
-			pictures[i].targetContrast = targetContrast
+			pictures[i].targetHistogram = averageHistogram
 		}
 	} else {
-		for i := range pictures {
-			targetIntensity = 0
-			targetContrast = 0.0
-			var start = maximum(i-config.rollingaverage, 0)
-			var end = minimum(i+config.rollingaverage, len(pictures)-1)
-			for j := start; j <= end; j++ {
-				targetIntensity += pictures[j].currentIntensity
-				targetContrast += pictures[j].currentContrast
-			}
-			targetIntensity /= float64(end - start + 2)
-			targetContrast /= float64(end - start + 2)
-			pictures[i].targetIntensity = targetIntensity
-			pictures[i].targetContrast = targetContrast
-		}
+		os.Exit(3)
 	}
+
 	//Create token channel and fill it with inital tokens
 	tokens = make(chan bool, config.threads)
 	for i := 0; i < config.threads; i++ {
 		tokens <- true
 	}
-	printDebug()
+	//printDebug()
 	//Run the loop for image adjustment
 	for i := range pictures {
 		_ = <-tokens
@@ -133,21 +117,11 @@ func main() {
 				progressBars["ADJUST"].Incr()
 				tokens <- true
 			}()
+			fmt.Println(pictures[i].path)
 			var img, _ = imaging.Open(pictures[i].path)
-
-			//pictures[i].requiredGammaChange = calculateGammaDifference(img, pictures[i].targetIntensity, 2)
-			pictures[i].requiredGammaChange = calculateSimpleGammaDifference(pictures[i].currentIntensity, pictures[i].targetIntensity)
-			img = imaging.AdjustGamma(img, pictures[i].requiredGammaChange)
-
-			pictures[i].requiredIntensityChange = calculateIntensityDifference(img, pictures[i].targetIntensity, 2)
-			img = imaging.AdjustBrightness(img, pictures[i].requiredIntensityChange/65536*100)
-
-			pictures[i].currentIntensity = measureIntensity(img, 2)
-			pictures[i].currentContrast = measureContrast(img, pictures[i].currentIntensity, 2)
-			pictures[i].requiredContrastChange = -100 * (pictures[i].targetContrast/pictures[i].currentContrast - 1)
-			//img = imaging.AdjustContrast(img, pictures[i].requiredContrastChange)
-			img = imaging.AdjustSigmoid(img, pictures[i].currentIntensity, pictures[i].requiredGammaChange)
-
+			lut := generateLutFromHistograms(pictures[i].currentHistogram, pictures[i].targetHistogram)
+			fmt.Println("LUT\n" + formatHistogram(lut))
+			img = applyLut(img, lut)
 			imaging.Save(img, filepath.Join(config.destination, filepath.Base(pictures[i].path)), imaging.JPEGQuality(95), imaging.PNGCompressionLevel(0))
 		}(i)
 	}
@@ -155,5 +129,5 @@ func main() {
 		_ = <-tokens
 	}
 	//uiprogress.Stop()
-	printDebug()
+	//printDebug()
 }
