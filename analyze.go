@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"image"
 	"image/color"
 	"math"
@@ -126,13 +125,13 @@ func generateLutFromHistograms(current [256]int, target [256]int) [256]int {
 	currentCumulativeHistogram := calculateCumulativeHistogram(current)
 	targetCumulativeHistogram := calculateCumulativeHistogram(target)
 
-	fmt.Println("CURRENT\n" + formatHistogram(currentCumulativeHistogram))
+	//fmt.Println("CURRENT\n" + formatHistogram(currentCumulativeHistogram))
 
 	ratio := float64(currentCumulativeHistogram[255]) / float64(targetCumulativeHistogram[255])
 	for i := 0; i < 256; i++ {
 		targetCumulativeHistogram[i] = int(float64(targetCumulativeHistogram[i])*ratio) + 1
 	}
-	fmt.Println("TARGET\n" + formatHistogram(targetCumulativeHistogram))
+	//fmt.Println("TARGET\n" + formatHistogram(targetCumulativeHistogram))
 
 	//Generate LUT
 	var lut [256]int
@@ -141,7 +140,7 @@ func generateLutFromHistograms(current [256]int, target [256]int) [256]int {
 		for targetCumulativeHistogram[pNew] < currentCumulativeHistogram[i] {
 			pNew++
 		}
-		fmt.Printf("lut[%v] = %v", i, pNew)
+		//fmt.Printf("lut[%v] = %v", i, pNew)
 		lut[i] = pNew
 	}
 	return lut

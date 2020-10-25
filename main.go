@@ -2,15 +2,14 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"log"
-	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 
 	"github.com/disintegration/imaging"
+	"github.com/gosuri/uiprogress"
 )
 
 type picture struct {
@@ -36,7 +35,7 @@ func main() {
 	flag.IntVar(&config.threads, "threads", runtime.NumCPU(), "Number of threads to use")
 	flag.Parse()
 
-	//uiprogress.Start() // start rendering
+	uiprogress.Start() // start rendering
 
 	//Set number of CPU cores to use
 	runtime.GOMAXPROCS(config.threads)
@@ -84,7 +83,6 @@ func main() {
 		_ = <-tokens
 	}
 	//Calculate global or rolling average
-
 	if config.rollingaverage < 1 {
 		var averageHistogram [256]int
 		for i := range pictures {
@@ -100,7 +98,20 @@ func main() {
 			pictures[i].targetHistogram = averageHistogram
 		}
 	} else {
-		os.Exit(3)
+		for i := range pictures {
+			var averageHistogram [256]int
+			var start = maximum(0, i-config.rollingaverage)
+			var end = minimum(len(pictures)-1, i+config.rollingaverage)
+			for i := start; i <= end; i++ {
+				for j := 0; j < 256; j++ {
+					averageHistogram[j] += pictures[i].currentHistogram[j]
+				}
+			}
+			for i := 0; i < 256; i++ {
+				averageHistogram[i] /= end - start + 1
+			}
+			pictures[i].targetHistogram = averageHistogram
+		}
 	}
 
 	//Create token channel and fill it with inital tokens
@@ -117,10 +128,10 @@ func main() {
 				progressBars["ADJUST"].Incr()
 				tokens <- true
 			}()
-			fmt.Println(pictures[i].path)
+			//fmt.Println(pictures[i].path)
 			var img, _ = imaging.Open(pictures[i].path)
 			lut := generateLutFromHistograms(pictures[i].currentHistogram, pictures[i].targetHistogram)
-			fmt.Println("LUT\n" + formatHistogram(lut))
+			//fmt.Println("LUT\n" + formatHistogram(lut))
 			img = applyLut(img, lut)
 			imaging.Save(img, filepath.Join(config.destination, filepath.Base(pictures[i].path)), imaging.JPEGQuality(95), imaging.PNGCompressionLevel(0))
 		}(i)
@@ -128,6 +139,6 @@ func main() {
 	for i := 0; i < config.threads; i++ {
 		_ = <-tokens
 	}
-	//uiprogress.Stop()
+	uiprogress.Stop()
 	//printDebug()
 }
