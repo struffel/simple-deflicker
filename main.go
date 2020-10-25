@@ -2,8 +2,9 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"io/ioutil"
-	"log"
+	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -47,7 +48,8 @@ func main() {
 	//Get list of files
 	files, err := ioutil.ReadDir(config.source)
 	if err != nil {
-		log.Fatalf("'%v': %v", config.source, err)
+		fmt.Printf("'%v': %v\n", config.source, err)
+		os.Exit(1)
 	}
 	//Prepare array of pictures
 	for _, file := range files {
@@ -56,7 +58,7 @@ func main() {
 		if extension == ".jpg" || extension == ".png" {
 			pictures = append(pictures, picture{fullPath, 0, 0, 0, 0, 0, 0})
 		} else {
-			log.Printf("'%v': ignoring file with unsupported extension", fullPath)
+			fmt.Printf("'%v': ignoring file with unsupported extension\n", fullPath)
 		}
 	}
 	progressBars := createProgressBars()
@@ -76,7 +78,8 @@ func main() {
 			}()
 			var img, err = imaging.Open(pictures[i].path)
 			if err != nil {
-				log.Fatalf("'%v': %v", pictures[i].path, err)
+				fmt.Printf("'%v': %v\n", pictures[i].path, err)
+				os.Exit(2)
 			}
 			pictures[i].currentIntensity = measureIntensity(img, 16)
 			pictures[i].currentContrast = measureContrast(img, pictures[i].currentIntensity, 16)
@@ -132,14 +135,15 @@ func main() {
 				tokens <- true
 			}()
 			var img, _ = imaging.Open(pictures[i].path)
-
-			pictures[i].requiredGammaChange = calculateGammaDifference(img, pictures[i].targetBrightness, 2)
-			img = imaging.AdjustGamma(img, pictures[i].requiredGammaChange)
-
-			pictures[i].currentIntensity = measureIntensity(img, 2)
-			pictures[i].currentContrast = measureContrast(img, pictures[i].currentIntensity, 2)
-			img = imaging.AdjustContrast(img, 100*(pictures[i].targetContrast/pictures[i].currentContrast-1))
-
+			/*
+				pictures[i].requiredGammaChange = calculateGammaDifference(img, pictures[i].targetBrightness, 2)
+				img = imaging.AdjustGamma(img, pictures[i].requiredGammaChange)
+			*/
+			/*
+				pictures[i].currentIntensity = measureIntensity(img, 2)
+				pictures[i].currentContrast = measureContrast(img, pictures[i].currentIntensity, 2)
+				img = imaging.AdjustContrast(img, 100*(pictures[i].targetContrast/pictures[i].currentContrast-1))
+			*/
 			pictures[i].requiredIntensityChange = calculateIntensityDifference(img, pictures[i].targetBrightness, 2)
 			img = imaging.AdjustBrightness(img, pictures[i].requiredIntensityChange/65536*100)
 
