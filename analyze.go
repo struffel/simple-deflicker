@@ -78,11 +78,18 @@ func calculateGammaDifference(input image.Image, targetIntensity float64, precis
 		for x := input.Bounds().Min.X; x < input.Bounds().Max.X; x += precision {
 			r, g, b, a := input.At(x, y).RGBA()
 			if a > 0 {
-				intensity := uint64(0.2126*float64(r) + 0.7152*float64(g) + 0.0722*float64(b))
-				sum += math.Log(clamp(float64(intensity), 1.0, 65535.0)/65536.0) / math.Log(clamp(float64(targetIntensity), 1.0, 65535.0)/65536.0)
+				intensity := float64(0.2126*float64(r) + 0.7152*float64(g) + 0.0722*float64(b))
+				//if intensity > 0.001*65536.0 && intensity < 0.999*65536.0 {
+				gamma := math.Log(clamp(intensity, 1.0, 65535.0)/65536.0) / math.Log(clamp(targetIntensity, 1.0, 65535.0)/65536.0)
+				sum += gamma
 				pixels++
+				//fmt.Printf("G: %v\n", gamma)
+				//}
 			}
 		}
 	}
 	return sum / float64(pixels)
+}
+func calculateSimpleGammaDifference(currentIntensity float64, targetIntensity float64) float64 {
+	return math.Log(clamp(float64(currentIntensity), 1.0, 65535.0)/65536.0) / math.Log(clamp(float64(targetIntensity), 1.0, 65535.0)/65536.0)
 }

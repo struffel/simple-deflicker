@@ -1,5 +1,7 @@
 package main
 
+import "fmt"
+
 func minimum(a int, b int) int {
 	if a < b {
 		return a
@@ -22,4 +24,11 @@ func clamp(a float64, min float64, max float64) float64 {
 		return max
 	}
 	return a
+}
+
+func printDebug() {
+	fmt.Printf("%-40v%-25v%-25v%-25v%-25v%-25v%-25v%-25v\n", "Path", "CurrentIntensity", "TargetIntensity", "CurrentContrast", "TargetContrast", "RequiredGammaChange", "RequiredConstrastChange", "RequiredIntensityChange")
+	for _, pic := range pictures {
+		fmt.Printf("%-40v%-25v%-25v%-25v%-25v%-25v%-25v%-25v\n", pic.path, pic.currentIntensity, pic.targetIntensity, pic.currentContrast, pic.targetContrast, pic.requiredGammaChange, pic.requiredContrastChange, pic.requiredIntensityChange)
+	}
 }
