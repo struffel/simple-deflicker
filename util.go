@@ -16,7 +16,7 @@ func maximum(a int, b int) int {
 	return b
 }
 
-func clamp(a float64, min float64, max float64) float64 {
+func clamp(a int, min int, max int) int {
 	if a < min {
 		return min
 	}

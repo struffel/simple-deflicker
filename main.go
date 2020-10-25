@@ -14,8 +14,8 @@ import (
 
 type picture struct {
 	path             string
-	currentHistogram [256]int
-	targetHistogram  [256]int
+	currentHistogram [256]uint32
+	targetHistogram  [256]uint32
 }
 
 var pictures []picture
@@ -49,7 +49,7 @@ func main() {
 	for _, file := range files {
 		var fullPath = filepath.Join(config.source, file.Name())
 		var extension = strings.ToLower(filepath.Ext(file.Name()))
-		var temp [256]int
+		var temp [256]uint32
 		if extension == ".jpg" || extension == ".png" {
 			pictures = append(pictures, picture{fullPath, temp, temp})
 		} else {
@@ -84,14 +84,14 @@ func main() {
 	}
 	//Calculate global or rolling average
 	if config.rollingaverage < 1 {
-		var averageHistogram [256]int
+		var averageHistogram [256]uint32
 		for i := range pictures {
 			for j := 0; j < 256; j++ {
 				averageHistogram[j] += pictures[i].currentHistogram[j]
 			}
 		}
 		for i := 0; i < 256; i++ {
-			averageHistogram[i] /= len(pictures)
+			averageHistogram[i] /= uint32(len(pictures))
 		}
 		//fmt.Println(formatHistogram(averageHistogram))
 		for i := range pictures {
@@ -99,7 +99,7 @@ func main() {
 		}
 	} else {
 		for i := range pictures {
-			var averageHistogram [256]int
+			var averageHistogram [256]uint32
 			var start = maximum(0, i-config.rollingaverage)
 			var end = minimum(len(pictures)-1, i+config.rollingaverage)
 			for i := start; i <= end; i++ {
@@ -108,7 +108,7 @@ func main() {
 				}
 			}
 			for i := 0; i < 256; i++ {
-				averageHistogram[i] /= end - start + 1
+				averageHistogram[i] /= uint32(end - start + 1)
 			}
 			pictures[i].targetHistogram = averageHistogram
 		}
@@ -119,7 +119,6 @@ func main() {
 	for i := 0; i < config.threads; i++ {
 		tokens <- true
 	}
-	//printDebug()
 	//Run the loop for image adjustment
 	for i := range pictures {
 		_ = <-tokens
@@ -128,10 +127,8 @@ func main() {
 				progressBars["ADJUST"].Incr()
 				tokens <- true
 			}()
-			//fmt.Println(pictures[i].path)
 			var img, _ = imaging.Open(pictures[i].path)
 			lut := generateLutFromHistograms(pictures[i].currentHistogram, pictures[i].targetHistogram)
-			//fmt.Println("LUT\n" + formatHistogram(lut))
 			img = applyLut(img, lut)
 			imaging.Save(img, filepath.Join(config.destination, filepath.Base(pictures[i].path)), imaging.JPEGQuality(95), imaging.PNGCompressionLevel(0))
 		}(i)
@@ -140,5 +137,4 @@ func main() {
 		_ = <-tokens
 	}
 	uiprogress.Stop()
-	//printDebug()
 }
