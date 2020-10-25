@@ -25,7 +25,7 @@ func clamp(a int, min int, max int) int {
 	}
 	return a
 }
-func formatHistogram(lut [256]int) string {
+func formatHistogram(lut [256]uint8) string {
 	output := ""
 	for i, v := range lut {
 		output += fmt.Sprintf("%v: %v\n", i, v)

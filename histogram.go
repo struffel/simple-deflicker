@@ -7,7 +7,7 @@ import (
 	"github.com/disintegration/imaging"
 )
 
-func calculateHistogram(input image.Image) [256]uint32 {
+func generateHistogramFromImage(input image.Image) [256]uint32 {
 	var histogram [256]uint32
 	var pixels uint64
 	for y := input.Bounds().Min.Y; y < input.Bounds().Max.Y; y++ {
@@ -21,7 +21,7 @@ func calculateHistogram(input image.Image) [256]uint32 {
 	return histogram
 }
 
-func calculateCumulativeHistogram(input [256]uint32) [256]uint32 {
+func convertToCumulativeHistogram(input [256]uint32) [256]uint32 {
 	var targetHistogram [256]uint32
 	targetHistogram[0] = input[0]
 	for i := 1; i < 256; i++ {
@@ -31,8 +31,8 @@ func calculateCumulativeHistogram(input [256]uint32) [256]uint32 {
 }
 
 func generateLutFromHistograms(current [256]uint32, target [256]uint32) [256]uint8 {
-	currentCumulativeHistogram := calculateCumulativeHistogram(current)
-	targetCumulativeHistogram := calculateCumulativeHistogram(target)
+	currentCumulativeHistogram := convertToCumulativeHistogram(current)
+	targetCumulativeHistogram := convertToCumulativeHistogram(target)
 
 	ratio := float64(currentCumulativeHistogram[255]) / float64(targetCumulativeHistogram[255])
 	for i := 0; i < 256; i++ {
@@ -50,7 +50,7 @@ func generateLutFromHistograms(current [256]uint32, target [256]uint32) [256]uin
 	}
 	return lut
 }
-func applyLut(input image.Image, lut [256]uint8) image.Image {
+func applyLutToImage(input image.Image, lut [256]uint8) image.Image {
 	result := imaging.AdjustFunc(input, func(c color.NRGBA) color.NRGBA {
 		c.R = uint8(lut[c.R])
 		c.G = uint8(lut[c.G])

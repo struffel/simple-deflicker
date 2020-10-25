@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"path/filepath"
@@ -75,7 +76,7 @@ func main() {
 			if err != nil {
 				log.Fatalf("'%v': %v", pictures[i].path, err)
 			}
-			pictures[i].currentHistogram = calculateHistogram(img)
+			pictures[i].currentHistogram = generateHistogramFromImage(img)
 			//pictures[i].kelvin = getAverageImageKelvin(img, 8)
 		}(i)
 	}
@@ -129,7 +130,8 @@ func main() {
 			}()
 			var img, _ = imaging.Open(pictures[i].path)
 			lut := generateLutFromHistograms(pictures[i].currentHistogram, pictures[i].targetHistogram)
-			img = applyLut(img, lut)
+			fmt.Println(formatHistogram(lut))
+			img = applyLutToImage(img, lut)
 			imaging.Save(img, filepath.Join(config.destination, filepath.Base(pictures[i].path)), imaging.JPEGQuality(95), imaging.PNGCompressionLevel(0))
 		}(i)
 	}
