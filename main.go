@@ -63,7 +63,7 @@ func main() {
 	progressBars := createProgressBars(len(pictures))
 
 	//Analyze and create Histograms
-	pictures = forEveryPicture(pictures, progressBars["ANALYZE"], config.threads, func(pic picture) picture {
+	pictures = forEveryPicture(pictures, progressBars.analyze, config.threads, func(pic picture) picture {
 		var img, err = imaging.Open(pic.path)
 		if err != nil {
 			fmt.Printf("'%v': %v\n", pic.path, err)
@@ -104,7 +104,7 @@ func main() {
 		}
 	}
 
-	pictures = forEveryPicture(pictures, progressBars["ADJUST"], config.threads, func(pic picture) picture {
+	pictures = forEveryPicture(pictures, progressBars.analyze, config.threads, func(pic picture) picture {
 		var img, _ = imaging.Open(pic.path)
 		lut := generateLutFromHistograms(pic.currentHistogram, pic.targetHistogram)
 		img = applyLutToImage(img, lut)
