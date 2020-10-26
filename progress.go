@@ -7,11 +7,11 @@ import (
 	"github.com/gosuri/uiprogress"
 )
 
-func createProgressBars() map[string]*uiprogress.Bar {
+func createProgressBars(numberOfPictures int) map[string]*uiprogress.Bar {
 
 	progressBars := make(map[string]*uiprogress.Bar)
-	progressBars["INITIALIZE"] = uiprogress.AddBar(len(pictures)).PrependCompleted().PrependElapsed()
-	progressBars["ADJUST"] = uiprogress.AddBar(len(pictures)).PrependCompleted().PrependElapsed()
+	progressBars["INITIALIZE"] = uiprogress.AddBar(numberOfPictures).PrependCompleted().PrependElapsed()
+	progressBars["ADJUST"] = uiprogress.AddBar(numberOfPictures).PrependCompleted().PrependElapsed()
 
 	progressBars["INITIALIZE"].Width = 20
 	progressBars["ADJUST"].Width = 20

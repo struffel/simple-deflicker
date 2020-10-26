@@ -13,13 +13,14 @@ import (
 	"github.com/gosuri/uiprogress"
 )
 
+type lut [256]uint8
+type histogram [256]uint32
+
 type picture struct {
 	path             string
-	currentHistogram [256]uint32
-	targetHistogram  [256]uint32
+	currentHistogram histogram
+	targetHistogram  histogram
 }
-
-var pictures []picture
 
 var config struct {
 	source         string
@@ -29,6 +30,7 @@ var config struct {
 }
 
 func main() {
+	var pictures []picture
 
 	flag.StringVar(&config.source, "source", ".", "Source folder")
 	flag.StringVar(&config.destination, "destination", ".", "Destination folder")
@@ -47,18 +49,18 @@ func main() {
 		fmt.Printf("'%v': %v\n", config.source, err)
 		os.Exit(1)
 	}
-	//Prepare array of pictures
+	//Prepare slice of pictures
 	for _, file := range files {
 		var fullPath = filepath.Join(config.source, file.Name())
 		var extension = strings.ToLower(filepath.Ext(file.Name()))
-		var temp [256]uint32
+		var temp histogram
 		if extension == ".jpg" || extension == ".png" {
 			pictures = append(pictures, picture{fullPath, temp, temp})
 		} else {
 			fmt.Printf("'%v': ignoring file with unsupported extension\n", fullPath)
 		}
 	}
-	progressBars := createProgressBars()
+	progressBars := createProgressBars(len(pictures))
 
 	//Prepare token channel
 	tokens := make(chan bool, config.threads)
@@ -87,7 +89,7 @@ func main() {
 	}
 	//Calculate global or rolling average
 	if config.rollingaverage < 1 {
-		var averageHistogram [256]uint32
+		var averageHistogram histogram
 		for i := range pictures {
 			for j := 0; j < 256; j++ {
 				averageHistogram[j] += pictures[i].currentHistogram[j]
@@ -101,7 +103,7 @@ func main() {
 		}
 	} else {
 		for i := range pictures {
-			var averageHistogram [256]uint32
+			var averageHistogram histogram
 			var start = maximum(0, i-config.rollingaverage)
 			var end = minimum(len(pictures)-1, i+config.rollingaverage)
 			for i := start; i <= end; i++ {

@@ -7,8 +7,8 @@ import (
 	"github.com/disintegration/imaging"
 )
 
-func generateHistogramFromImage(input image.Image) [256]uint32 {
-	var histogram [256]uint32
+func generateHistogramFromImage(input image.Image) histogram {
+	var histogram histogram
 	var pixels uint64
 	for y := input.Bounds().Min.Y; y < input.Bounds().Max.Y; y++ {
 		for x := input.Bounds().Min.X; x < input.Bounds().Max.X; x++ {
@@ -21,8 +21,8 @@ func generateHistogramFromImage(input image.Image) [256]uint32 {
 	return histogram
 }
 
-func convertToCumulativeHistogram(input [256]uint32) [256]uint32 {
-	var targetHistogram [256]uint32
+func convertToCumulativeHistogram(input histogram) histogram {
+	var targetHistogram histogram
 	targetHistogram[0] = input[0]
 	for i := 1; i < 256; i++ {
 		targetHistogram[i] = targetHistogram[i-1] + input[i]
@@ -30,7 +30,7 @@ func convertToCumulativeHistogram(input [256]uint32) [256]uint32 {
 	return targetHistogram
 }
 
-func generateLutFromHistograms(current [256]uint32, target [256]uint32) [256]uint8 {
+func generateLutFromHistograms(current histogram, target histogram) lut {
 	currentCumulativeHistogram := convertToCumulativeHistogram(current)
 	targetCumulativeHistogram := convertToCumulativeHistogram(target)
 
@@ -40,7 +40,7 @@ func generateLutFromHistograms(current [256]uint32, target [256]uint32) [256]uin
 	}
 
 	//Generate LUT
-	var lut [256]uint8
+	var lut lut
 	var p uint8 = 0
 	for i := 0; i < 256; i++ {
 		for targetCumulativeHistogram[p] < currentCumulativeHistogram[i] {
@@ -50,7 +50,7 @@ func generateLutFromHistograms(current [256]uint32, target [256]uint32) [256]uin
 	}
 	return lut
 }
-func applyLutToImage(input image.Image, lut [256]uint8) image.Image {
+func applyLutToImage(input image.Image, lut lut) image.Image {
 	result := imaging.AdjustFunc(input, func(c color.NRGBA) color.NRGBA {
 		c.R = uint8(lut[c.R])
 		c.G = uint8(lut[c.G])
