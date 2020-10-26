@@ -14,12 +14,22 @@ import (
 )
 
 type lut [256]uint8
+type rgbLut struct {
+	r lut
+	g lut
+	b lut
+}
 type histogram [256]uint32
+type rgbHistogram struct {
+	r histogram
+	g histogram
+	b histogram
+}
 
 type picture struct {
 	path             string
-	currentHistogram histogram
-	targetHistogram  histogram
+	currentHistogram rgbHistogram
+	targetHistogram  rgbHistogram
 }
 
 var config struct {
@@ -53,7 +63,7 @@ func main() {
 	for _, file := range files {
 		var fullPath = filepath.Join(config.source, file.Name())
 		var extension = strings.ToLower(filepath.Ext(file.Name()))
-		var temp histogram
+		var temp rgbHistogram
 		if extension == ".jpg" || extension == ".png" {
 			pictures = append(pictures, picture{fullPath, temp, temp})
 		} else {
@@ -80,7 +90,7 @@ func main() {
 				fmt.Printf("'%v': %v\n", pictures[i].path, err)
 				os.Exit(2)
 			}
-			pictures[i].currentHistogram = generateHistogramFromImage(img)
+			pictures[i].currentHistogram = generateRGBHistogramFromImage(img)
 			//pictures[i].kelvin = getAverageImageKelvin(img, 8)
 		}(i)
 	}
@@ -89,30 +99,38 @@ func main() {
 	}
 	//Calculate global or rolling average
 	if config.rollingaverage < 1 {
-		var averageHistogram histogram
+		var averageHistogram rgbHistogram
 		for i := range pictures {
 			for j := 0; j < 256; j++ {
-				averageHistogram[j] += pictures[i].currentHistogram[j]
+				averageHistogram.r[j] += pictures[i].currentHistogram.r[j]
+				averageHistogram.g[j] += pictures[i].currentHistogram.g[j]
+				averageHistogram.b[j] += pictures[i].currentHistogram.b[j]
 			}
 		}
 		for i := 0; i < 256; i++ {
-			averageHistogram[i] /= uint32(len(pictures))
+			averageHistogram.r[i] /= uint32(len(pictures))
+			averageHistogram.g[i] /= uint32(len(pictures))
+			averageHistogram.b[i] /= uint32(len(pictures))
 		}
 		for i := range pictures {
 			pictures[i].targetHistogram = averageHistogram
 		}
 	} else {
 		for i := range pictures {
-			var averageHistogram histogram
+			var averageHistogram rgbHistogram
 			var start = maximum(0, i-config.rollingaverage)
 			var end = minimum(len(pictures)-1, i+config.rollingaverage)
 			for i := start; i <= end; i++ {
 				for j := 0; j < 256; j++ {
-					averageHistogram[j] += pictures[i].currentHistogram[j]
+					averageHistogram.r[j] += pictures[i].currentHistogram.r[j]
+					averageHistogram.g[j] += pictures[i].currentHistogram.g[j]
+					averageHistogram.b[j] += pictures[i].currentHistogram.b[j]
 				}
 			}
 			for i := 0; i < 256; i++ {
-				averageHistogram[i] /= uint32(end - start + 1)
+				averageHistogram.r[i] /= uint32(end - start + 1)
+				averageHistogram.g[i] /= uint32(end - start + 1)
+				averageHistogram.b[i] /= uint32(end - start + 1)
 			}
 			pictures[i].targetHistogram = averageHistogram
 		}
@@ -132,8 +150,8 @@ func main() {
 				tokens <- true
 			}()
 			var img, _ = imaging.Open(pictures[i].path)
-			lut := generateLutFromHistograms(pictures[i].currentHistogram, pictures[i].targetHistogram)
-			img = applyLutToImage(img, lut)
+			lut := generateRGBLutFromHistograms(pictures[i].currentHistogram, pictures[i].targetHistogram)
+			img = applyRGBLutToImage(img, lut)
 			imaging.Save(img, filepath.Join(config.destination, filepath.Base(pictures[i].path)), imaging.JPEGQuality(95), imaging.PNGCompressionLevel(0))
 		}(i)
 	}
