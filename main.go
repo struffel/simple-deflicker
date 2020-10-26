@@ -91,8 +91,8 @@ func main() {
 	} else {
 		for i := range pictures {
 			var averageHistogram histogram
-			var start = maximum(0, i-config.rollingaverage)
-			var end = minimum(len(pictures)-1, i+config.rollingaverage)
+			var start = clamp(i-config.rollingaverage, 0, len(pictures)-1)
+			var end = clamp(i+config.rollingaverage, 0, len(pictures)-1)
 			for i := start; i <= end; i++ {
 				for j := 0; j < 256; j++ {
 					averageHistogram[j] += pictures[i].currentHistogram[j]
