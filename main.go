@@ -17,13 +17,13 @@ type lut [256]uint8
 type histogram [256]uint32
 
 type picture struct {
-	path             string
+	currentPath      string
+	targetPath       string
 	currentHistogram histogram
 	targetHistogram  histogram
 }
 
 func main() {
-	var pictures []picture
 
 	var config struct {
 		source         string
@@ -38,35 +38,46 @@ func main() {
 	flag.IntVar(&config.threads, "threads", runtime.NumCPU(), "Number of threads to use")
 	flag.Parse()
 
-	uiprogress.Start() // start rendering
+	pictures := createPictureSliceFromDirectory(config.source, config.destination)
+	runDeflickering(pictures, config.rollingaverage, config.threads)
 
 	//Set number of CPU cores to use
 	runtime.GOMAXPROCS(config.threads)
 
+}
+
+func createPictureSliceFromDirectory(currentDirectory string, targetDirectory string) []picture {
+	var pictures []picture
 	//Get list of files
-	files, err := ioutil.ReadDir(config.source)
+	files, err := ioutil.ReadDir(currentDirectory)
 	if err != nil {
-		fmt.Printf("'%v': %v\n", config.source, err)
+		fmt.Printf("'%v': %v\n", currentDirectory, err)
 		os.Exit(1)
 	}
 	//Prepare slice of pictures
 	for _, file := range files {
-		var fullPath = filepath.Join(config.source, file.Name())
+		var fullSourcePath = filepath.Join(currentDirectory, file.Name())
+		var fullTargetPath = filepath.Join(targetDirectory, file.Name())
 		var extension = strings.ToLower(filepath.Ext(file.Name()))
 		var temp histogram
 		if extension == ".jpg" || extension == ".png" {
-			pictures = append(pictures, picture{fullPath, temp, temp})
+			pictures = append(pictures, picture{fullSourcePath, fullTargetPath, temp, temp})
 		} else {
-			fmt.Printf("'%v': ignoring file with unsupported extension\n", fullPath)
+			fmt.Printf("'%v': ignoring file with unsupported extension\n", fullSourcePath)
 		}
 	}
+	return pictures
+}
+
+func runDeflickering(pictures []picture, rollingaverage int, threads int) {
+	uiprogress.Start() // start rendering
 	progressBars := createProgressBars(len(pictures))
 
 	//Analyze and create Histograms
-	pictures = forEveryPicture(pictures, progressBars.analyze, config.threads, func(pic picture) picture {
-		var img, err = imaging.Open(pic.path)
+	pictures = forEveryPicture(pictures, progressBars.analyze, threads, func(pic picture) picture {
+		var img, err = imaging.Open(pic.currentPath)
 		if err != nil {
-			fmt.Printf("'%v': %v\n", pic.path, err)
+			fmt.Printf("'%v': %v\n", pic.targetPath, err)
 			os.Exit(2)
 		}
 		pic.currentHistogram = generateHistogramFromImage(img)
@@ -74,7 +85,7 @@ func main() {
 	})
 
 	//Calculate global or rolling average
-	if config.rollingaverage < 1 {
+	if rollingaverage < 1 {
 		var averageHistogram histogram
 		for i := range pictures {
 			for j := 0; j < 256; j++ {
@@ -90,8 +101,8 @@ func main() {
 	} else {
 		for i := range pictures {
 			var averageHistogram histogram
-			var start = clamp(i-config.rollingaverage, 0, len(pictures)-1)
-			var end = clamp(i+config.rollingaverage, 0, len(pictures)-1)
+			var start = clamp(i-rollingaverage, 0, len(pictures)-1)
+			var end = clamp(i+rollingaverage, 0, len(pictures)-1)
 			for i := start; i <= end; i++ {
 				for j := 0; j < 256; j++ {
 					averageHistogram[j] += pictures[i].currentHistogram[j]
@@ -104,11 +115,11 @@ func main() {
 		}
 	}
 
-	pictures = forEveryPicture(pictures, progressBars.analyze, config.threads, func(pic picture) picture {
-		var img, _ = imaging.Open(pic.path)
+	pictures = forEveryPicture(pictures, progressBars.analyze, threads, func(pic picture) picture {
+		var img, _ = imaging.Open(pic.currentPath)
 		lut := generateLutFromHistograms(pic.currentHistogram, pic.targetHistogram)
 		img = applyLutToImage(img, lut)
-		imaging.Save(img, filepath.Join(config.destination, filepath.Base(pic.path)), imaging.JPEGQuality(95), imaging.PNGCompressionLevel(0))
+		imaging.Save(img, pic.targetPath, imaging.JPEGQuality(95), imaging.PNGCompressionLevel(0))
 		return pic
 	})
 	uiprogress.Stop()
