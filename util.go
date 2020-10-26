@@ -14,9 +14,9 @@ func clamp(a int, min int, max int) int {
 	return a
 }
 
-func forEveryPicture(pictures []picture, progressBar *uiprogress.Bar, f func(pic picture) picture) []picture {
-	tokens := make(chan bool, config.threads)
-	for i := 0; i < config.threads; i++ {
+func forEveryPicture(pictures []picture, progressBar *uiprogress.Bar, threads int, f func(pic picture) picture) []picture {
+	tokens := make(chan bool, threads)
+	for i := 0; i < threads; i++ {
 		tokens <- true
 	}
 	for i := range pictures {
@@ -29,7 +29,7 @@ func forEveryPicture(pictures []picture, progressBar *uiprogress.Bar, f func(pic
 			pictures[i] = f(pictures[i])
 		}(i)
 	}
-	for i := 0; i < config.threads; i++ {
+	for i := 0; i < threads; i++ {
 		_ = <-tokens
 	}
 	return pictures

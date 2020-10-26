@@ -22,17 +22,16 @@ type picture struct {
 	targetHistogram  histogram
 }
 
-var config struct {
-	source         string
-	destination    string
-	rollingaverage int
-	threads        int
-}
-
 func main() {
 	var pictures []picture
 
-	fmt.Println(1)
+	var config struct {
+		source         string
+		destination    string
+		rollingaverage int
+		threads        int
+	}
+
 	flag.StringVar(&config.source, "source", ".", "Source folder")
 	flag.StringVar(&config.destination, "destination", ".", "Destination folder")
 	flag.IntVar(&config.rollingaverage, "rollingaverage", 10, "Number of frames to use for rolling average. 0 disables it.")
@@ -63,8 +62,8 @@ func main() {
 	}
 	progressBars := createProgressBars(len(pictures))
 
-	//Initialize Histograms
-	pictures = forEveryPicture(pictures, progressBars["INITIALIZE"], func(pic picture) picture {
+	//Analyze and create Histograms
+	pictures = forEveryPicture(pictures, progressBars["ANALYZE"], config.threads, func(pic picture) picture {
 		var img, err = imaging.Open(pic.path)
 		if err != nil {
 			fmt.Printf("'%v': %v\n", pic.path, err)
@@ -105,7 +104,7 @@ func main() {
 		}
 	}
 
-	pictures = forEveryPicture(pictures, progressBars["ADJUST"], func(pic picture) picture {
+	pictures = forEveryPicture(pictures, progressBars["ADJUST"], config.threads, func(pic picture) picture {
 		var img, _ = imaging.Open(pic.path)
 		lut := generateLutFromHistograms(pic.currentHistogram, pic.targetHistogram)
 		img = applyLutToImage(img, lut)
