@@ -10,10 +10,10 @@ import (
 func createProgressBars(numberOfPictures int) map[string]*uiprogress.Bar {
 
 	progressBars := make(map[string]*uiprogress.Bar)
-	progressBars["INITIALIZE"] = uiprogress.AddBar(numberOfPictures).PrependCompleted().PrependElapsed()
+	progressBars["ANALYZE"] = uiprogress.AddBar(numberOfPictures).PrependCompleted().PrependElapsed()
 	progressBars["ADJUST"] = uiprogress.AddBar(numberOfPictures).PrependCompleted().PrependElapsed()
 
-	progressBars["INITIALIZE"].Width = 20
+	progressBars["ANALYZE"].Width = 20
 	progressBars["ADJUST"].Width = 20
 
 	progressBarFunction := func(b *uiprogress.Bar, step string) string {
@@ -24,14 +24,14 @@ func createProgressBars(numberOfPictures int) map[string]*uiprogress.Bar {
 	}
 
 	progressBarFunctionAnalyze := func(b *uiprogress.Bar) string {
-		return progressBarFunction(b, "Initializing")
+		return progressBarFunction(b, "Analyzing")
 	}
 
 	progressBarFunctionAdjust := func(b *uiprogress.Bar) string {
 		return progressBarFunction(b, "Adjusting")
 	}
 
-	progressBars["INITIALIZE"].AppendFunc(progressBarFunctionAnalyze)
+	progressBars["ANALYZE"].AppendFunc(progressBarFunctionAnalyze)
 	progressBars["ADJUST"].AppendFunc(progressBarFunctionAdjust)
 
 	return progressBars

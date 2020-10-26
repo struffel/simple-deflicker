@@ -22,15 +22,15 @@ type picture struct {
 	targetHistogram  histogram
 }
 
-var config struct {
-	source         string
-	destination    string
-	rollingaverage int
-	threads        int
-}
-
 func main() {
 	var pictures []picture
+
+	var config struct {
+		source         string
+		destination    string
+		rollingaverage int
+		threads        int
+	}
 
 	flag.StringVar(&config.source, "source", ".", "Source folder")
 	flag.StringVar(&config.destination, "destination", ".", "Destination folder")
@@ -62,31 +62,17 @@ func main() {
 	}
 	progressBars := createProgressBars(len(pictures))
 
-	//Prepare token channel
-	tokens := make(chan bool, config.threads)
-	//Fill token channel with initial values and start the analysis loop
-	for i := 0; i < config.threads; i++ {
-		tokens <- true
-	}
-	for i := range pictures {
-		_ = <-tokens
-		go func(i int) {
-			defer func() {
-				progressBars["INITIALIZE"].Incr()
-				tokens <- true
-			}()
-			var img, err = imaging.Open(pictures[i].path)
-			if err != nil {
-				fmt.Printf("'%v': %v\n", pictures[i].path, err)
-				os.Exit(2)
-			}
-			pictures[i].currentHistogram = generateHistogramFromImage(img)
-			//pictures[i].kelvin = getAverageImageKelvin(img, 8)
-		}(i)
-	}
-	for i := 0; i < config.threads; i++ {
-		_ = <-tokens
-	}
+	//Analyze and create Histograms
+	pictures = forEveryPicture(pictures, progressBars["ANALYZE"], config.threads, func(pic picture) picture {
+		var img, err = imaging.Open(pic.path)
+		if err != nil {
+			fmt.Printf("'%v': %v\n", pic.path, err)
+			os.Exit(2)
+		}
+		pic.currentHistogram = generateHistogramFromImage(img)
+		return pic
+	})
+
 	//Calculate global or rolling average
 	if config.rollingaverage < 1 {
 		var averageHistogram histogram
@@ -105,7 +91,7 @@ func main() {
 		for i := range pictures {
 			var averageHistogram histogram
 			var start = clamp(i-config.rollingaverage, 0, len(pictures)-1)
-			var end = clamp(i-config.rollingaverage, 0, len(pictures)-1)
+			var end = clamp(i+config.rollingaverage, 0, len(pictures)-1)
 			for i := start; i <= end; i++ {
 				for j := 0; j < 256; j++ {
 					averageHistogram[j] += pictures[i].currentHistogram[j]
@@ -118,27 +104,12 @@ func main() {
 		}
 	}
 
-	//Create token channel and fill it with inital tokens
-	tokens = make(chan bool, config.threads)
-	for i := 0; i < config.threads; i++ {
-		tokens <- true
-	}
-	//Run the loop for image adjustment
-	for i := range pictures {
-		_ = <-tokens
-		go func(i int) {
-			defer func() {
-				progressBars["ADJUST"].Incr()
-				tokens <- true
-			}()
-			var img, _ = imaging.Open(pictures[i].path)
-			lut := generateLutFromHistograms(pictures[i].currentHistogram, pictures[i].targetHistogram)
-			img = applyLutToImage(img, lut)
-			imaging.Save(img, filepath.Join(config.destination, filepath.Base(pictures[i].path)), imaging.JPEGQuality(95), imaging.PNGCompressionLevel(0))
-		}(i)
-	}
-	for i := 0; i < config.threads; i++ {
-		_ = <-tokens
-	}
+	pictures = forEveryPicture(pictures, progressBars["ADJUST"], config.threads, func(pic picture) picture {
+		var img, _ = imaging.Open(pic.path)
+		lut := generateLutFromHistograms(pic.currentHistogram, pic.targetHistogram)
+		img = applyLutToImage(img, lut)
+		imaging.Save(img, filepath.Join(config.destination, filepath.Base(pic.path)), imaging.JPEGQuality(95), imaging.PNGCompressionLevel(0))
+		return pic
+	})
 	uiprogress.Stop()
 }
