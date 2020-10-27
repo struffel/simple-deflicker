@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/gosuri/uiprogress"
 )
 
@@ -33,4 +35,8 @@ func forEveryPicture(pictures []picture, progressBar *uiprogress.Bar, threads in
 		_ = <-tokens
 	}
 	return pictures
+}
+func printInfo() {
+	fmt.Println("SIMPLE DEFLICKER")
+	fmt.Println("v0.1.0 / github.com/StruffelProductions/simple-deflicker")
 }

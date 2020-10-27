@@ -29,10 +29,9 @@ type config struct {
 }
 
 func main() {
+	printInfo()
 
 	config := collectConfigInformation()
-	fmt.Println(config)
-	os.Exit(3)
 
 	makeDirectoryIfNotExists(config.destinationDirectory)
 
