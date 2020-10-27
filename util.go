@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+
 	"github.com/gosuri/uiprogress"
 )
 
@@ -33,4 +35,10 @@ func forEveryPicture(pictures []picture, progressBar *uiprogress.Bar, threads in
 		_ = <-tokens
 	}
 	return pictures
+}
+func makeDirectoryIfNotExists(directory string) error {
+	if _, err := os.Stat(directory); os.IsNotExist(err) {
+		return os.Mkdir(directory, os.ModeDir|0755)
+	}
+	return nil
 }
