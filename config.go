@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"path/filepath"
 	"runtime"
 
@@ -27,6 +26,5 @@ func collectConfigInformation() config {
 			config.destinationDirectory, _ = dialog.Directory().Title("Specify destination directory.").Browse()
 		}
 	}
-	fmt.Println(config)
 	return config
 }
