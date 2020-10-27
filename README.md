@@ -1,6 +1,7 @@
 # Simple Deflicker
 A minimalist, lightning-fast and easy to use tool for deflickering image sequences such as timelapses.
 It's still in its early stages of development.
+![Short Demo](https://i.imgur.com/KoYEhVd.gif)
 
 ## How to use it
 * Download the latest version from the [releases page](https://github.com/StruffelProductions/simple-deflicker/releases). The compiled binary is only available for windows at this point
@@ -11,3 +12,4 @@ It's still in its early stages of development.
 * Only JPG and PNG images are supported
 * JPGs will always be saved with a compression setting of 95
 * All metadata present in the source files will not be copied over.
+
