@@ -6,6 +6,7 @@ It's still in its early stages of development.
 
 ## What is timelapse flickering?
 Timelapse flickering can occur if one or more settings of the camera have been left on "auto" which causes it to randomly switch between two settings (for example shutter speeds). Here is an example on YouTube (not made by me):
+
 [![Timelapse flickering demonstration](https://img.youtube.com/vi/t56jdLtke64/0.jpg)](https://www.youtube.com/watch?v=t56jdLtke64)
 
 ## How to use this software
@@ -32,6 +33,7 @@ The software uses several other packages:
 * [Imaging](https://github.com/disintegration/imaging) for loading, saving and manipulating image files.
 * [dialog](https://github.com/sqweek/dialog) for creating the dialog boxes and file selection windows.
 * [uiprogress](https://github.com/gosuri/uiprogress) for creating the progress bars in the console.
+
 Let's take a quick tour through all the files:
 * **main.go** contains the main() function as well as the runDeflickering() function which orchestrate the entire process.
 * **histogram.go** contains the mathematical operations for handeling histograms and luts (Look up tables) used for deflickering
