@@ -2,12 +2,10 @@
 A minimalist, lightning-fast and easy to use tool for deflickering image sequences such as timelapses.
 It's still in its early stages of development.
 
-![Short Demo](demo_clouds.gif)
+![Short Demo](demo_church.gif)
 
 ## What is timelapse flickering?
-Timelapse flickering can occur if one or more settings of the camera have been left on "auto" which causes it to randomly switch between two settings (for example shutter speeds). Here is an example on YouTube (not made by me):
-
-[![Timelapse flickering demonstration](https://img.youtube.com/vi/t56jdLtke64/0.jpg)](https://www.youtube.com/watch?v=t56jdLtke64)
+Timelapse flickering can occur if one or more settings of the camera have been left on "auto" which causes it to randomly switch between two settings (for example shutter speeds).
 
 ## How to use this software
 * Download the latest version from the [releases page](https://github.com/StruffelProductions/simple-deflicker/releases). The compiled binary is only available for windows at this point
