@@ -1,13 +1,12 @@
 package main
 
 import (
-	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path/filepath"
 	"runtime"
-	"strings"
+	"time"
+
+	"github.com/skratchdot/open-golang/open"
 
 	"github.com/disintegration/imaging"
 	"github.com/gosuri/uiprogress"
@@ -27,79 +26,54 @@ type rgbHistogram struct {
 }
 
 type picture struct {
-	path             string
-	currentHistogram rgbHistogram
-	targetHistogram  rgbHistogram
+	currentPath      string
+	targetPath       string
+	currentHistogram histogram
+	targetHistogram  histogram
 }
-
-var config struct {
-	source         string
-	destination    string
-	rollingaverage int
-	threads        int
+type config struct {
+	sourceDirectory      string
+	destinationDirectory string
+	rollingaverage       int
+	threads              int
 }
 
 func main() {
-	var pictures []picture
+	printInfo()
 
-	flag.StringVar(&config.source, "source", ".", "Source folder")
-	flag.StringVar(&config.destination, "destination", ".", "Destination folder")
-	flag.IntVar(&config.rollingaverage, "rollingaverage", 10, "Number of frames to use for rolling average. 0 disables it.")
-	flag.IntVar(&config.threads, "threads", runtime.NumCPU(), "Number of threads to use")
-	flag.Parse()
+	config := collectConfigInformation()
 
-	uiprogress.Start() // start rendering
+	makeDirectoryIfNotExists(config.destinationDirectory)
 
 	//Set number of CPU cores to use
 	runtime.GOMAXPROCS(config.threads)
 
-	//Get list of files
-	files, err := ioutil.ReadDir(config.source)
-	if err != nil {
-		fmt.Printf("'%v': %v\n", config.source, err)
-		os.Exit(1)
-	}
-	//Prepare slice of pictures
-	for _, file := range files {
-		var fullPath = filepath.Join(config.source, file.Name())
-		var extension = strings.ToLower(filepath.Ext(file.Name()))
-		var temp rgbHistogram
-		if extension == ".jpg" || extension == ".png" {
-			pictures = append(pictures, picture{fullPath, temp, temp})
-		} else {
-			fmt.Printf("'%v': ignoring file with unsupported extension\n", fullPath)
-		}
-	}
+	pictures := createPictureSliceFromDirectory(config.sourceDirectory, config.destinationDirectory)
+	runDeflickering(pictures, config.rollingaverage, config.threads)
+	open.Start(config.destinationDirectory)
+	fmt.Println("Finished. This window will close itself in 5 seconds")
+	time.Sleep(time.Second * 5)
+	os.Exit(0)
+}
+
+func runDeflickering(pictures []picture, rollingaverage int, threads int) {
+	uiprogress.Start() // start rendering
 	progressBars := createProgressBars(len(pictures))
 
-	//Prepare token channel
-	tokens := make(chan bool, config.threads)
-	//Fill token channel with initial values and start the analysis loop
-	for i := 0; i < config.threads; i++ {
-		tokens <- true
-	}
-	for i := range pictures {
-		_ = <-tokens
-		go func(i int) {
-			defer func() {
-				progressBars["INITIALIZE"].Incr()
-				tokens <- true
-			}()
-			var img, err = imaging.Open(pictures[i].path)
-			if err != nil {
-				fmt.Printf("'%v': %v\n", pictures[i].path, err)
-				os.Exit(2)
-			}
-			pictures[i].currentHistogram = generateRGBHistogramFromImage(img)
-			//pictures[i].kelvin = getAverageImageKelvin(img, 8)
-		}(i)
-	}
-	for i := 0; i < config.threads; i++ {
-		_ = <-tokens
-	}
+	//Analyze and create Histograms
+	pictures = forEveryPicture(pictures, progressBars.analyze, threads, func(pic picture) picture {
+		var img, err = imaging.Open(pic.currentPath)
+		if err != nil {
+			fmt.Printf("'%v': %v\n", pic.targetPath, err)
+			os.Exit(2)
+		}
+		pic.currentHistogram = generateHistogramFromImage(img)
+		return pic
+	})
+
 	//Calculate global or rolling average
-	if config.rollingaverage < 1 {
-		var averageHistogram rgbHistogram
+	if rollingaverage < 1 {
+		var averageHistogram histogram
 		for i := range pictures {
 			for j := 0; j < 256; j++ {
 				averageHistogram.r[j] += pictures[i].currentHistogram.r[j]
@@ -136,27 +110,12 @@ func main() {
 		}
 	}
 
-	//Create token channel and fill it with inital tokens
-	tokens = make(chan bool, config.threads)
-	for i := 0; i < config.threads; i++ {
-		tokens <- true
-	}
-	//Run the loop for image adjustment
-	for i := range pictures {
-		_ = <-tokens
-		go func(i int) {
-			defer func() {
-				progressBars["ADJUST"].Incr()
-				tokens <- true
-			}()
-			var img, _ = imaging.Open(pictures[i].path)
-			lut := generateRGBLutFromHistograms(pictures[i].currentHistogram, pictures[i].targetHistogram)
-			img = applyRGBLutToImage(img, lut)
-			imaging.Save(img, filepath.Join(config.destination, filepath.Base(pictures[i].path)), imaging.JPEGQuality(95), imaging.PNGCompressionLevel(0))
-		}(i)
-	}
-	for i := 0; i < config.threads; i++ {
-		_ = <-tokens
-	}
+	pictures = forEveryPicture(pictures, progressBars.adjust, threads, func(pic picture) picture {
+		var img, _ = imaging.Open(pic.currentPath)
+		lut := generateLutFromHistograms(pic.currentHistogram, pic.targetHistogram)
+		img = applyLutToImage(img, lut)
+		imaging.Save(img, pic.targetPath, imaging.JPEGQuality(95), imaging.PNGCompressionLevel(0))
+		return pic
+	})
 	uiprogress.Stop()
 }

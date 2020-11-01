@@ -7,14 +7,19 @@ import (
 	"github.com/gosuri/uiprogress"
 )
 
-func createProgressBars(numberOfPictures int) map[string]*uiprogress.Bar {
+func createProgressBars(numberOfPictures int) struct {
+	analyze *uiprogress.Bar
+	adjust  *uiprogress.Bar
+} {
+	var progressBars struct {
+		analyze *uiprogress.Bar
+		adjust  *uiprogress.Bar
+	}
+	progressBars.analyze = uiprogress.AddBar(numberOfPictures).PrependCompleted().PrependElapsed()
+	progressBars.adjust = uiprogress.AddBar(numberOfPictures).PrependCompleted().PrependElapsed()
 
-	progressBars := make(map[string]*uiprogress.Bar)
-	progressBars["INITIALIZE"] = uiprogress.AddBar(numberOfPictures).PrependCompleted().PrependElapsed()
-	progressBars["ADJUST"] = uiprogress.AddBar(numberOfPictures).PrependCompleted().PrependElapsed()
-
-	progressBars["INITIALIZE"].Width = 20
-	progressBars["ADJUST"].Width = 20
+	progressBars.analyze.Width = 20
+	progressBars.adjust.Width = 20
 
 	progressBarFunction := func(b *uiprogress.Bar, step string) string {
 		//Calculate the number of digits to display
@@ -24,15 +29,15 @@ func createProgressBars(numberOfPictures int) map[string]*uiprogress.Bar {
 	}
 
 	progressBarFunctionAnalyze := func(b *uiprogress.Bar) string {
-		return progressBarFunction(b, "Initializing")
+		return progressBarFunction(b, "Analyzing")
 	}
 
 	progressBarFunctionAdjust := func(b *uiprogress.Bar) string {
 		return progressBarFunction(b, "Adjusting")
 	}
 
-	progressBars["INITIALIZE"].AppendFunc(progressBarFunctionAnalyze)
-	progressBars["ADJUST"].AppendFunc(progressBarFunctionAdjust)
+	progressBars.analyze.AppendFunc(progressBarFunctionAnalyze)
+	progressBars.adjust.AppendFunc(progressBarFunctionAdjust)
 
 	return progressBars
 }
