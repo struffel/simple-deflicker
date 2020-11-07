@@ -9,7 +9,6 @@ import (
 	"github.com/skratchdot/open-golang/open"
 
 	"github.com/disintegration/imaging"
-	"github.com/gosuri/uiprogress"
 )
 
 type lut [256]uint8
@@ -47,7 +46,7 @@ func main() {
 }
 
 func runDeflickering(pictures []picture, rollingaverage int, threads int) {
-	uiprogress.Start() // start rendering
+	//uiprogress.Start() // start rendering
 	progressBars := createProgressBars(len(pictures))
 
 	//Analyze and create Histograms
@@ -95,9 +94,10 @@ func runDeflickering(pictures []picture, rollingaverage int, threads int) {
 	pictures = forEveryPicture(pictures, progressBars.adjust, threads, func(pic picture) picture {
 		var img, _ = imaging.Open(pic.currentPath)
 		lut := generateLutFromHistograms(pic.currentHistogram, pic.targetHistogram)
+		fmt.Println(lut)
 		img = applyLutToImage(img, lut)
 		imaging.Save(img, pic.targetPath, imaging.JPEGQuality(95), imaging.PNGCompressionLevel(0))
 		return pic
 	})
-	uiprogress.Stop()
+	//uiprogress.Stop()
 }

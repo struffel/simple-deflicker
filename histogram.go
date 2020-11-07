@@ -16,6 +16,7 @@ func generateHistogramFromImage(input image.Image) histogram {
 			intensity := float64(0.2126*float64(r)+0.7152*float64(g)+0.0722*float64(b)) / 256.0
 			histogram[int(intensity)]++
 			pixels++
+
 		}
 	}
 	return histogram
@@ -48,6 +49,7 @@ func generateLutFromHistograms(current histogram, target histogram) lut {
 		}
 		lut[i] = p
 	}
+	//return extendLut(lut)
 	return lut
 }
 func applyLutToImage(input image.Image, lut lut) image.Image {
@@ -58,4 +60,35 @@ func applyLutToImage(input image.Image, lut lut) image.Image {
 		return c
 	})
 	return result
+}
+
+func extendLut(lut lut) lut {
+	start := 0
+	end := len(lut) - 1
+	//Find first entry that isn't 0
+	for i := 0; i < len(lut); i++ {
+		if lut[i] == 0 {
+			start++
+		} else {
+			break
+		}
+	}
+	//Set all values up to that entry to the value of that entry
+	for i := 0; i < start; i++ {
+		lut[i] = lut[end]
+	}
+
+	//find the last entry that isn't 0
+	for i := len(lut) - 1; i >= 0; i++ {
+		if lut[i] == 0 {
+			end--
+		} else {
+			break
+		}
+	}
+	//Set all values after it to the value of that entry
+	for i := len(lut) - 1; i > end; i++ {
+		lut[i] = lut[end]
+	}
+	return lut
 }
