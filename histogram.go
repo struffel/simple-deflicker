@@ -49,8 +49,9 @@ func generateLutFromHistograms(current histogram, target histogram) lut {
 		}
 		lut[i] = p
 	}
-	return extendLut(lut)
+	return lut
 }
+
 func applyLutToImage(input image.Image, lut lut) image.Image {
 	result := imaging.AdjustFunc(input, func(c color.NRGBA) color.NRGBA {
 		c.R = uint8(lut[c.R])
