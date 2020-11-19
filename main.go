@@ -1,11 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"runtime"
 	"time"
 
+	"github.com/gosuri/uiprogress"
 	"github.com/skratchdot/open-golang/open"
 
 	"github.com/disintegration/imaging"
@@ -40,20 +40,20 @@ func main() {
 	pictures := createPictureSliceFromDirectory(config.sourceDirectory, config.destinationDirectory)
 	runDeflickering(pictures, config.rollingaverage, config.threads)
 	open.Start(config.destinationDirectory)
-	fmt.Println("Finished. This window will close itself in 5 seconds")
+	//fmt.Println("Finished. This window will close itself in 5 seconds")
 	time.Sleep(time.Second * 5)
 	os.Exit(0)
 }
 
 func runDeflickering(pictures []picture, rollingaverage int, threads int) {
-	//uiprogress.Start() // start rendering
+	uiprogress.Start() // start rendering
 	progressBars := createProgressBars(len(pictures))
 
 	//Analyze and create Histograms
 	pictures = forEveryPicture(pictures, progressBars.analyze, threads, func(pic picture) picture {
 		var img, err = imaging.Open(pic.currentPath)
 		if err != nil {
-			fmt.Printf("'%v': %v\n", pic.targetPath, err)
+			//fmt.Printf("'%v': %v\n", pic.targetPath, err)
 			os.Exit(2)
 		}
 		pic.currentHistogram = generateHistogramFromImage(img)
@@ -94,10 +94,10 @@ func runDeflickering(pictures []picture, rollingaverage int, threads int) {
 	pictures = forEveryPicture(pictures, progressBars.adjust, threads, func(pic picture) picture {
 		var img, _ = imaging.Open(pic.currentPath)
 		lut := generateLutFromHistograms(pic.currentHistogram, pic.targetHistogram)
-		fmt.Println(lut)
+		//fmt.Println(lut)
 		img = applyLutToImage(img, lut)
 		imaging.Save(img, pic.targetPath, imaging.JPEGQuality(95), imaging.PNGCompressionLevel(0))
 		return pic
 	})
-	//uiprogress.Stop()
+	uiprogress.Stop()
 }

@@ -49,8 +49,7 @@ func generateLutFromHistograms(current histogram, target histogram) lut {
 		}
 		lut[i] = p
 	}
-	//return extendLut(lut)
-	return lut
+	return extendLut(lut)
 }
 func applyLutToImage(input image.Image, lut lut) image.Image {
 	result := imaging.AdjustFunc(input, func(c color.NRGBA) color.NRGBA {
@@ -75,11 +74,11 @@ func extendLut(lut lut) lut {
 	}
 	//Set all values up to that entry to the value of that entry
 	for i := 0; i < start; i++ {
-		lut[i] = lut[end]
+		lut[i] = lut[start]
 	}
 
 	//find the last entry that isn't 0
-	for i := len(lut) - 1; i >= 0; i++ {
+	for i := len(lut) - 1; i >= 0; i-- {
 		if lut[i] == 0 {
 			end--
 		} else {
