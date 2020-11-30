@@ -75,7 +75,7 @@ func extendLut(lut lut) lut {
 	}
 	//Set all values up to that entry to the value of that entry
 	for i := 0; i < start; i++ {
-		lut[i] = lut[start]
+		lut[i] = uint8(float32(lut[start]) * float32(i) / float32(start))
 	}
 
 	//find the last entry that isn't 0
@@ -89,6 +89,7 @@ func extendLut(lut lut) lut {
 	//Set all values after it to the value of that entry
 	for i := len(lut) - 1; i > end; i++ {
 		lut[i] = lut[end]
+		//TODO: Create formula to approach 255 towards the end
 	}
 	return lut
 }
