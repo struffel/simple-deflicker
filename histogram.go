@@ -94,11 +94,11 @@ func extendLut(lut lut) lut {
 	}
 	return lut
 }
-func dumpLut(lut lut, name string) {
-	var output = "IN,OUT\n"
-	for i := range lut {
-		output += fmt.Sprintf("%v,%v\n", i, lut[i])
+func dump(lut lut, currentHistogram histogram, targetHistogram histogram, name string, addendum string) {
+	var output = "VALUE,CURRENT,TARGET,LUT\n"
+	for i := 0; i < 256; i++ {
+		output += fmt.Sprintf("%v,%v,%v,%v\n", i, currentHistogram[i], targetHistogram[i], lut[i])
 	}
-	name += ".lut.csv"
+	name += addendum
 	ioutil.WriteFile(name, []byte(output), 0644)
 }

@@ -94,7 +94,7 @@ func runDeflickering(pictures []picture, rollingaverage int, threads int) {
 	pictures = forEveryPicture(pictures, progressBars.adjust, threads, func(pic picture) picture {
 		var img, _ = imaging.Open(pic.currentPath)
 		lut := extendLut(generateLutFromHistograms(pic.currentHistogram, pic.targetHistogram))
-		dumpLut(lut, pic.targetPath)
+		dump(lut, pic.currentHistogram, pic.targetHistogram, pic.targetPath, ".csv")
 		img = applyLutToImage(img, lut)
 		imaging.Save(img, pic.targetPath, imaging.JPEGQuality(95), imaging.PNGCompressionLevel(0))
 		return pic
