@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"image"
 	"image/color"
+	"io/ioutil"
 
 	"github.com/disintegration/imaging"
 )
@@ -91,4 +93,12 @@ func extendLut(lut lut) lut {
 		lut[i] = lut[end]
 	}
 	return lut
+}
+func dumpLut(lut lut, name string) {
+	var output = "IN,OUT\n"
+	for i := range lut {
+		output += fmt.Sprintf("%v,%v\n", i, lut[i])
+	}
+	name += ".lut.csv"
+	ioutil.WriteFile(name, []byte(output), 0644)
 }
