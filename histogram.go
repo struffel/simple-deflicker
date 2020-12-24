@@ -102,7 +102,7 @@ func generateRGBLutFromHistograms(current rgbHistogram, target rgbHistogram) rgb
 		for targetCumulativeHistogram.g[p[1]] < currentCumulativeHistogram.g[i] {
 			p[1]++
 		}
-		for targetCumulativeHistogram.r[p[2]] < currentCumulativeHistogram.b[i] {
+		for targetCumulativeHistogram.b[p[2]] < currentCumulativeHistogram.b[i] {
 			p[2]++
 		}
 		lut.r[i] = p[0]
