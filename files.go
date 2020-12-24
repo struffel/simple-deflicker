@@ -21,7 +21,7 @@ func createPictureSliceFromDirectory(currentDirectory string, targetDirectory st
 		var fullSourcePath = filepath.Join(currentDirectory, file.Name())
 		var fullTargetPath = filepath.Join(targetDirectory, file.Name())
 		var extension = strings.ToLower(filepath.Ext(file.Name()))
-		var temp histogram
+		var temp rgbHistogram
 		if extension == ".jpg" || extension == ".png" {
 			pictures = append(pictures, picture{fullSourcePath, fullTargetPath, temp, temp})
 		} else {

@@ -28,8 +28,8 @@ type rgbHistogram struct {
 type picture struct {
 	currentPath      string
 	targetPath       string
-	currentHistogram histogram
-	targetHistogram  histogram
+	currentHistogram rgbHistogram
+	targetHistogram  rgbHistogram
 }
 type config struct {
 	sourceDirectory      string
@@ -67,13 +67,13 @@ func runDeflickering(pictures []picture, rollingaverage int, threads int) {
 			fmt.Printf("'%v': %v\n", pic.targetPath, err)
 			os.Exit(2)
 		}
-		pic.currentHistogram = generateHistogramFromImage(img)
+		pic.currentHistogram = generateRGBHistogramFromImage(img)
 		return pic
 	})
 
 	//Calculate global or rolling average
 	if rollingaverage < 1 {
-		var averageHistogram histogram
+		var averageHistogram rgbHistogram
 		for i := range pictures {
 			for j := 0; j < 256; j++ {
 				averageHistogram.r[j] += pictures[i].currentHistogram.r[j]
@@ -92,8 +92,14 @@ func runDeflickering(pictures []picture, rollingaverage int, threads int) {
 	} else {
 		for i := range pictures {
 			var averageHistogram rgbHistogram
-			var start = maximum(0, i-config.rollingaverage)
-			var end = minimum(len(pictures)-1, i+config.rollingaverage)
+			var start = i - rollingaverage
+			if start < 0 {
+				start = 0
+			}
+			var end = i + rollingaverage
+			if end > len(pictures)-1 {
+				end = len(pictures) - 1
+			}
 			for i := start; i <= end; i++ {
 				for j := 0; j < 256; j++ {
 					averageHistogram.r[j] += pictures[i].currentHistogram.r[j]
@@ -112,8 +118,8 @@ func runDeflickering(pictures []picture, rollingaverage int, threads int) {
 
 	pictures = forEveryPicture(pictures, progressBars.adjust, threads, func(pic picture) picture {
 		var img, _ = imaging.Open(pic.currentPath)
-		lut := generateLutFromHistograms(pic.currentHistogram, pic.targetHistogram)
-		img = applyLutToImage(img, lut)
+		lut := generateRGBLutFromHistograms(pic.currentHistogram, pic.targetHistogram)
+		img = applyRGBLutToImage(img, lut)
 		imaging.Save(img, pic.targetPath, imaging.JPEGQuality(95), imaging.PNGCompressionLevel(0))
 		return pic
 	})
