@@ -32,7 +32,9 @@ func collectConfigInformation() configuration {
 	if config.jpegcompression < 1 || config.jpegcompression > 100 {
 		log.Fatalln("'jpegcompression' must be a value between 1 and 100")
 	}
-
+	if config.threads < 1 {
+		log.Fatalln("'threads' must be greater than 0")
+	}
 	//Test for missing directory inputs
 	if config.sourceDirectory == "" {
 		dialog.Message("%s", "No source directory has been specified.\nPlease specify a directory now.").Title("Specify source directory").Info()
