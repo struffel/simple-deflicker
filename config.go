@@ -11,8 +11,8 @@ import (
 	"github.com/sqweek/dialog"
 )
 
-func collectConfigInformation() config {
-	var config config
+func collectConfigInformation() configuration {
+	var config configuration
 	flag.StringVar(&config.sourceDirectory, "source", "", "Directory with the images to process.")
 	flag.StringVar(&config.destinationDirectory, "destination", "", "Directory to put the processed images in.")
 	flag.IntVar(&config.rollingaverage, "rollingaverage", 15, "Number of frames to use for rolling average. 0 disables it.")

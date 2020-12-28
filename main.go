@@ -31,7 +31,7 @@ type picture struct {
 	currentRgbHistogram rgbHistogram
 	targetRgbHistogram  rgbHistogram
 }
-type config struct {
+type configuration struct {
 	sourceDirectory      string
 	destinationDirectory string
 	rollingaverage       int
@@ -49,19 +49,19 @@ func main() {
 	runtime.GOMAXPROCS(config.threads)
 
 	pictures := createPictureSliceFromDirectory(config.sourceDirectory, config.destinationDirectory)
-	runDeflickering(pictures, config.rollingaverage, config.threads)
+	runDeflickering(pictures, config)
 	open.Start(config.destinationDirectory)
 	fmt.Println("Finished. This window will close itself in 5 seconds")
 	time.Sleep(time.Second * 5)
 	os.Exit(0)
 }
 
-func runDeflickering(pictures []picture, rollingaverage int, threads int) {
+func runDeflickering(pictures []picture, config configuration) {
 	uiprogress.Start() // start rendering
 	progressBars := createProgressBars(len(pictures))
 
 	//Analyze and create Histograms
-	pictures = forEveryPicture(pictures, progressBars.analyze, threads, func(pic picture) picture {
+	pictures = forEveryPicture(pictures, progressBars.analyze, config.threads, func(pic picture) picture {
 		var img, err = imaging.Open(pic.currentPath)
 		if err != nil {
 			fmt.Printf("'%v': %v\n", pic.targetPath, err)
@@ -72,7 +72,7 @@ func runDeflickering(pictures []picture, rollingaverage int, threads int) {
 	})
 
 	//Calculate global or rolling average
-	if rollingaverage < 1 {
+	if config.rollingaverage < 1 {
 		var averageRgbHistogram rgbHistogram
 		for i := range pictures {
 			for j := 0; j < 256; j++ {
@@ -92,11 +92,11 @@ func runDeflickering(pictures []picture, rollingaverage int, threads int) {
 	} else {
 		for i := range pictures {
 			var averageRgbHistogram rgbHistogram
-			var start = i - rollingaverage
+			var start = i - config.rollingaverage
 			if start < 0 {
 				start = 0
 			}
-			var end = i + rollingaverage
+			var end = i + config.rollingaverage
 			if end > len(pictures)-1 {
 				end = len(pictures) - 1
 			}
@@ -116,7 +116,7 @@ func runDeflickering(pictures []picture, rollingaverage int, threads int) {
 		}
 	}
 
-	pictures = forEveryPicture(pictures, progressBars.adjust, threads, func(pic picture) picture {
+	pictures = forEveryPicture(pictures, progressBars.adjust, config.threads, func(pic picture) picture {
 		var img, _ = imaging.Open(pic.currentPath)
 		lut := generateRgbLutFromRgbHistograms(pic.currentRgbHistogram, pic.targetRgbHistogram)
 		img = applyRgbLutToImage(img, lut)
