@@ -11,13 +11,29 @@ import (
 	"github.com/sqweek/dialog"
 )
 
+type configuration struct {
+	sourceDirectory      string
+	destinationDirectory string
+	rollingaverage       int
+	jpegcompression      int
+	threads              int
+}
+
 func collectConfigInformation() configuration {
 	var config configuration
 	flag.StringVar(&config.sourceDirectory, "source", "", "Directory with the images to process.")
 	flag.StringVar(&config.destinationDirectory, "destination", "", "Directory to put the processed images in.")
 	flag.IntVar(&config.rollingaverage, "rollingaverage", 15, "Number of frames to use for rolling average. 0 disables it.")
+	flag.IntVar(&config.jpegcompression, "jpegcompression", 95, "Level of JPEG compression. Must be between 1 - 100. Default is 95.")
 	flag.IntVar(&config.threads, "threads", runtime.NumCPU(), "Number of threads to use")
 	flag.Parse()
+
+	//Test for illegal inputs
+	if config.jpegcompression < 1 || config.jpegcompression > 100 {
+		log.Fatalln("'jpegcompression' must be a value between 1 and 100")
+	}
+
+	//Test for missing directory inputs
 	if config.sourceDirectory == "" {
 		dialog.Message("%s", "No source directory has been specified.\nPlease specify a directory now.").Title("Specify source directory").Info()
 		srcDir, err := dialog.Directory().Title("Specify source directory.").Browse()

@@ -12,30 +12,11 @@ import (
 	"github.com/gosuri/uiprogress"
 )
 
-type lut [256]uint8
-type rgbLut struct {
-	r lut
-	g lut
-	b lut
-}
-type histogram [256]uint32
-type rgbHistogram struct {
-	r histogram
-	g histogram
-	b histogram
-}
-
 type picture struct {
 	currentPath         string
 	targetPath          string
 	currentRgbHistogram rgbHistogram
 	targetRgbHistogram  rgbHistogram
-}
-type configuration struct {
-	sourceDirectory      string
-	destinationDirectory string
-	rollingaverage       int
-	threads              int
 }
 
 func main() {
@@ -120,7 +101,7 @@ func runDeflickering(pictures []picture, config configuration) {
 		var img, _ = imaging.Open(pic.currentPath)
 		lut := generateRgbLutFromRgbHistograms(pic.currentRgbHistogram, pic.targetRgbHistogram)
 		img = applyRgbLutToImage(img, lut)
-		imaging.Save(img, pic.targetPath, imaging.JPEGQuality(95), imaging.PNGCompressionLevel(0))
+		imaging.Save(img, pic.targetPath, imaging.JPEGQuality(config.jpegcompression), imaging.PNGCompressionLevel(0))
 		return pic
 	})
 	uiprogress.Stop()
