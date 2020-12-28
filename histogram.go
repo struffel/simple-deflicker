@@ -7,18 +7,6 @@ import (
 	"github.com/disintegration/imaging"
 )
 
-func generateIntensityHistogramFromImage(input image.Image) histogram {
-	var histogram histogram
-	for y := input.Bounds().Min.Y; y < input.Bounds().Max.Y; y++ {
-		for x := input.Bounds().Min.X; x < input.Bounds().Max.X; x++ {
-			r, g, b, _ := input.At(x, y).RGBA()
-			intensity := float64(0.2126*float64(r)+0.7152*float64(g)+0.0722*float64(b)) / 256.0
-			histogram[int(intensity)]++
-		}
-	}
-	return histogram
-}
-
 func generateRgbHistogramFromImage(input image.Image) rgbHistogram {
 	var rgbHistogram rgbHistogram
 	for y := input.Bounds().Min.Y; y < input.Bounds().Max.Y; y++ {
@@ -35,15 +23,6 @@ func generateRgbHistogramFromImage(input image.Image) rgbHistogram {
 	return rgbHistogram
 }
 
-func convertToCumulativeHistogram(input histogram) histogram {
-	var targetHistogram histogram
-	targetHistogram[0] = input[0]
-	for i := 1; i < 256; i++ {
-		targetHistogram[i] = targetHistogram[i-1] + input[i]
-	}
-	return targetHistogram
-}
-
 func convertToCumulativeRgbHistogram(input rgbHistogram) rgbHistogram {
 	var targetRgbHistogram rgbHistogram
 	targetRgbHistogram.r[0] = input.r[0]
@@ -55,27 +34,6 @@ func convertToCumulativeRgbHistogram(input rgbHistogram) rgbHistogram {
 		targetRgbHistogram.b[i] = targetRgbHistogram.b[i-1] + input.b[i]
 	}
 	return targetRgbHistogram
-}
-
-func generateIntensityLutFromHistograms(current histogram, target histogram) lut {
-	currentCumulativeHistogram := convertToCumulativeHistogram(current)
-	targetCumulativeHistogram := convertToCumulativeHistogram(target)
-
-	ratio := float64(currentCumulativeHistogram[255]) / float64(targetCumulativeHistogram[255])
-	for i := 0; i < 256; i++ {
-		targetCumulativeHistogram[i] = uint32(0.5 + float64(targetCumulativeHistogram[i])*ratio)
-	}
-
-	//Generate LUT
-	var lut lut
-	var p uint8 = 0
-	for i := 0; i < 256; i++ {
-		for targetCumulativeHistogram[p] < currentCumulativeHistogram[i] {
-			p++
-		}
-		lut[i] = p
-	}
-	return lut
 }
 
 func generateRgbLutFromRgbHistograms(current rgbHistogram, target rgbHistogram) rgbLut {
