@@ -13,13 +13,23 @@ import (
 )
 
 type lut [256]uint8
+type rgbLut struct {
+	r lut
+	g lut
+	b lut
+}
 type histogram [256]uint32
+type rgbHistogram struct {
+	r histogram
+	g histogram
+	b histogram
+}
 
 type picture struct {
-	currentPath      string
-	targetPath       string
-	currentHistogram histogram
-	targetHistogram  histogram
+	currentPath         string
+	targetPath          string
+	currentRgbHistogram rgbHistogram
+	targetRgbHistogram  rgbHistogram
 }
 type config struct {
 	sourceDirectory      string
@@ -57,45 +67,59 @@ func runDeflickering(pictures []picture, rollingaverage int, threads int) {
 			fmt.Printf("'%v': %v\n", pic.targetPath, err)
 			os.Exit(2)
 		}
-		pic.currentHistogram = generateHistogramFromImage(img)
+		pic.currentRgbHistogram = generateRgbHistogramFromImage(img)
 		return pic
 	})
 
 	//Calculate global or rolling average
 	if rollingaverage < 1 {
-		var averageHistogram histogram
+		var averageRgbHistogram rgbHistogram
 		for i := range pictures {
 			for j := 0; j < 256; j++ {
-				averageHistogram[j] += pictures[i].currentHistogram[j]
+				averageRgbHistogram.r[j] += pictures[i].currentRgbHistogram.r[j]
+				averageRgbHistogram.g[j] += pictures[i].currentRgbHistogram.g[j]
+				averageRgbHistogram.b[j] += pictures[i].currentRgbHistogram.b[j]
 			}
 		}
 		for i := 0; i < 256; i++ {
-			averageHistogram[i] /= uint32(len(pictures))
+			averageRgbHistogram.r[i] /= uint32(len(pictures))
+			averageRgbHistogram.g[i] /= uint32(len(pictures))
+			averageRgbHistogram.b[i] /= uint32(len(pictures))
 		}
 		for i := range pictures {
-			pictures[i].targetHistogram = averageHistogram
+			pictures[i].targetRgbHistogram = averageRgbHistogram
 		}
 	} else {
 		for i := range pictures {
-			var averageHistogram histogram
-			var start = clamp(i-rollingaverage, 0, len(pictures)-1)
-			var end = clamp(i+rollingaverage, 0, len(pictures)-1)
+			var averageRgbHistogram rgbHistogram
+			var start = i - rollingaverage
+			if start < 0 {
+				start = 0
+			}
+			var end = i + rollingaverage
+			if end > len(pictures)-1 {
+				end = len(pictures) - 1
+			}
 			for i := start; i <= end; i++ {
 				for j := 0; j < 256; j++ {
-					averageHistogram[j] += pictures[i].currentHistogram[j]
+					averageRgbHistogram.r[j] += pictures[i].currentRgbHistogram.r[j]
+					averageRgbHistogram.g[j] += pictures[i].currentRgbHistogram.g[j]
+					averageRgbHistogram.b[j] += pictures[i].currentRgbHistogram.b[j]
 				}
 			}
 			for i := 0; i < 256; i++ {
-				averageHistogram[i] /= uint32(end - start + 1)
+				averageRgbHistogram.r[i] /= uint32(end - start + 1)
+				averageRgbHistogram.g[i] /= uint32(end - start + 1)
+				averageRgbHistogram.b[i] /= uint32(end - start + 1)
 			}
-			pictures[i].targetHistogram = averageHistogram
+			pictures[i].targetRgbHistogram = averageRgbHistogram
 		}
 	}
 
 	pictures = forEveryPicture(pictures, progressBars.adjust, threads, func(pic picture) picture {
 		var img, _ = imaging.Open(pic.currentPath)
-		lut := generateLutFromHistograms(pic.currentHistogram, pic.targetHistogram)
-		img = applyLutToImage(img, lut)
+		lut := generateRgbLutFromRgbHistograms(pic.currentRgbHistogram, pic.targetRgbHistogram)
+		img = applyRgbLutToImage(img, lut)
 		imaging.Save(img, pic.targetPath, imaging.JPEGQuality(95), imaging.PNGCompressionLevel(0))
 		return pic
 	})
