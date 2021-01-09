@@ -29,7 +29,7 @@ func main() {
 	//Set number of CPU cores to use
 	runtime.GOMAXPROCS(config.threads)
 
-	pictures := createPictureSliceFromDirectory(config.sourceDirectory, config.destinationDirectory)
+	pictures := readDirectory(config.sourceDirectory, config.destinationDirectory)
 	runDeflickering(pictures, config)
 	open.Start(config.destinationDirectory)
 	fmt.Println("Finished. This window will close itself in 5 seconds")
