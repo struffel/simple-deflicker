@@ -7,6 +7,19 @@ import (
 	"github.com/disintegration/imaging"
 )
 
+type lut [256]uint8
+type rgbLut struct {
+	r lut
+	g lut
+	b lut
+}
+type histogram [256]uint32
+type rgbHistogram struct {
+	r histogram
+	g histogram
+	b histogram
+}
+
 func generateRgbHistogramFromImage(input image.Image) rgbHistogram {
 	var rgbHistogram rgbHistogram
 	for y := input.Bounds().Min.Y; y < input.Bounds().Max.Y; y++ {
