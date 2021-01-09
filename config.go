@@ -25,7 +25,7 @@ func collectConfigInformation() configuration {
 	flag.StringVar(&config.destinationDirectory, "destination", "", "Directory to put the processed images in.")
 	flag.IntVar(&config.rollingaverage, "rollingaverage", 15, "Number of frames to use for rolling average. 0 disables it.")
 	flag.IntVar(&config.jpegcompression, "jpegcompression", 95, "Level of JPEG compression. Must be between 1 - 100. Default is 95.")
-	flag.IntVar(&config.threads, "threads", runtime.NumCPU(), "Number of threads to use")
+	flag.IntVar(&config.threads, "threads", runtime.NumCPU(), "Number of threads to use. Default is the detected number of cores.")
 	flag.Parse()
 
 	//Test for illegal inputs
