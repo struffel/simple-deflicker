@@ -41,7 +41,7 @@ func collectConfigInformation() configuration {
 		srcDir, err := dialog.Directory().Title("Specify source directory.").Browse()
 		if err != nil {
 			if errors.Is(err, dialog.ErrCancelled) {
-				dialog.Message("%s", "Source directory selection was canceled.  Exiting.").Title("No Source Selected").Info()
+				dialog.Message("%s", "Source directory selection was canceled. The program will now close.").Title("No Source Selected").Info()
 				os.Exit(1)
 			} else {
 				dialog.Message("%s: %v", "Unexpected error", err).Title("Unexpected Error").Error()
