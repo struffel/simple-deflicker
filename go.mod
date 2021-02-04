@@ -3,6 +3,7 @@ module github.com/StruffelProductions/simple-deflicker
 go 1.15
 
 require (
+	github.com/aarzilli/nucular v0.0.0-20210203155122-9112adf75b4f
 	github.com/disintegration/imaging v1.6.2
 	github.com/gosuri/uilive v0.0.4 // indirect
 	github.com/gosuri/uiprogress v0.0.1

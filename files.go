@@ -44,3 +44,10 @@ func makeDirectoryIfNotExists(directory string) error {
 	}
 	return nil
 }
+
+func testForDirectory(directory string) bool {
+	if _, err := os.Stat(directory); os.IsNotExist(err) {
+		return false
+	}
+	return true
+}
