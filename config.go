@@ -35,22 +35,23 @@ func validateConfigInformation(config configuration) (bool, string) {
 		isValid = false
 		description += "- Invalid number of threads. There must be at least one thread.\n"
 	}
+	if config.rollingAverage < 1 {
+		isValid = false
+		description += "- Invalid rolling average. Value must be equal to or greater than 1.\n"
+	}
 	if config.sourceDirectory == "" {
 		isValid = false
 		description += "- No source directory specified.\n"
-	} else if testForDirectory(config.sourceDirectory) {
+	} else if !testForDirectory(config.sourceDirectory) {
 		isValid = false
 		description += "- The source directory does not appear to exist.\n"
 	}
 	if config.destinationDirectory == "" {
 		isValid = false
 		description += "- No destination directory specified.\n"
-	} else if testForDirectory(config.destinationDirectory) {
+	} else if !testForDirectory(config.destinationDirectory) {
 		isValid = false
 		description += "- The destination directory does not appear to exist.\n"
-	}
-	if !isValid {
-		description = "There are issues with your settings:\n" + description
 	}
 	return isValid, description
 }

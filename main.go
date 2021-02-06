@@ -109,7 +109,14 @@ func windowUpdateFunction(w *nucular.Window) {
 		config.rollingAverage, _ = strconv.Atoi(string(guiComponents.rollingAverageField.Buffer))
 		config.jpegCompression, _ = strconv.Atoi(string(guiComponents.jpegCompressionField.Buffer))
 		config.threads, _ = strconv.Atoi(string(guiComponents.threadsField.Buffer))
-		runDeflickering(config)
+		isValid, description := validateConfigInformation(config)
+		if isValid {
+			runDeflickering(config)
+		} else {
+			fmt.Print(description)
+			dialog.Message("Invalid settings:\n%s", description).Title("Invalid settings").Error()
+		}
+
 	}
 }
 
