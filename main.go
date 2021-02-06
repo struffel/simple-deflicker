@@ -38,7 +38,7 @@ func main() {
 	//Read parameters from console
 	config := collectConfigInformation()
 
-	window := nucular.NewMasterWindowSize(0, "Simple Deflicker", image.Point{300, 450}, windowUpdateFunction)
+	window := nucular.NewMasterWindowSize(0, "Simple Deflicker", image.Point{450, 450}, windowUpdateFunction)
 	window.SetStyle(style.FromTheme(style.DarkTheme, 1.0))
 
 	guiComponents.sourceField.Flags = nucular.EditSelectable | nucular.EditClipboard | nucular.EditSigEnter | nucular.EditIbeamCursor
@@ -120,6 +120,7 @@ func windowUpdateFunction(w *nucular.Window) {
 }
 
 func runDeflickering(config configuration) {
+	fmt.Println("Starting...")
 	runtime.GOMAXPROCS(config.threads)
 	pictures := readDirectory(config.sourceDirectory, config.destinationDirectory)
 	progress := createProgressBars(len(pictures))
@@ -189,4 +190,5 @@ func runDeflickering(config configuration) {
 		return pic
 	})
 	progress.container.Stop()
+	fmt.Println("Finished.")
 }

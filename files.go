@@ -38,11 +38,18 @@ func readDirectory(currentDirectory string, targetDirectory string) []picture {
 	return pictures
 }
 
-func makeDirectoryIfNotExists(directory string) error {
+func makeDirectoryIfNotExists(directory string, askUser bool) (bool, error) {
 	if _, err := os.Stat(directory); os.IsNotExist(err) {
-		return os.Mkdir(directory, os.ModeDir|0755)
+		ok := true
+		if askUser {
+			ok = dialog.Message("'%s' does not exist. Do you want to create it?", directory).Title("Create new directory?").YesNo()
+		}
+		if ok {
+			return true, os.Mkdir(directory, os.ModeDir|0755)
+		}
+		return false, nil
 	}
-	return nil
+	return true, nil
 }
 
 func testForDirectory(directory string) bool {
