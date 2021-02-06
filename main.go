@@ -13,7 +13,6 @@ import (
 	"github.com/sqweek/dialog"
 
 	"github.com/disintegration/imaging"
-	"github.com/gosuri/uiprogress"
 )
 
 type picture struct {
@@ -121,15 +120,14 @@ func windowUpdateFunction(w *nucular.Window) {
 }
 
 func runDeflickering(config configuration) {
-	uiprogress.Start() // start rendering
 	runtime.GOMAXPROCS(config.threads)
 	pictures := readDirectory(config.sourceDirectory, config.destinationDirectory)
-	progressBars := createProgressBars(len(pictures))
-
+	progress := createProgressBars(len(pictures))
+	progress.container.Start()
 	//fmt.Printf("%+v\n", pictures)
 
 	//Analyze and create Histograms
-	pictures = forEveryPicture(pictures, progressBars.analyze, config.threads, func(pic picture) picture {
+	pictures = forEveryPicture(pictures, progress.bars["analyze"], config.threads, func(pic picture) picture {
 		var img, err = imaging.Open(pic.currentPath)
 		if err != nil {
 			fmt.Printf("'%v': %v\n", pic.targetPath, err)
@@ -183,13 +181,12 @@ func runDeflickering(config configuration) {
 		}
 	}
 
-	pictures = forEveryPicture(pictures, progressBars.adjust, config.threads, func(pic picture) picture {
+	pictures = forEveryPicture(pictures, progress.bars["adjust"], config.threads, func(pic picture) picture {
 		var img, _ = imaging.Open(pic.currentPath)
 		lut := generateRgbLutFromRgbHistograms(pic.currentRgbHistogram, pic.targetRgbHistogram)
 		img = applyRgbLutToImage(img, lut)
 		imaging.Save(img, pic.targetPath, imaging.JPEGQuality(config.jpegCompression), imaging.PNGCompressionLevel(0))
 		return pic
 	})
-
-	uiprogress.Stop()
+	progress.container.Stop()
 }
