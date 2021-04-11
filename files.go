@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -10,7 +11,7 @@ import (
 	"github.com/sqweek/dialog"
 )
 
-func readDirectory(currentDirectory string, targetDirectory string) []picture {
+func readDirectory(currentDirectory string, targetDirectory string) ([]picture, error) {
 	var pictures []picture
 	//Get list of files
 	files, err := ioutil.ReadDir(currentDirectory)
@@ -32,10 +33,9 @@ func readDirectory(currentDirectory string, targetDirectory string) []picture {
 		}
 	}
 	if len(pictures) < 1 {
-		dialog.Message("%s", "The source directory does not contain any compatible images (JPG or PNG). The program will now close.").Title("No Images in Source Directory").Error()
-		os.Exit(1)
+		return pictures, errors.New("The source directory does not contain any compatible images (JPG or PNG).")
 	}
-	return pictures
+	return pictures, nil
 }
 
 func makeDirectoryIfNotExists(directory string, askUser bool) (bool, error) {

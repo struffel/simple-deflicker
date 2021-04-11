@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"image"
 	"path/filepath"
 
@@ -60,6 +61,11 @@ func windowUpdateFunction(w *nucular.Window) {
 		w.Label("TEST", "LB")
 		config.sourceDirectory = string(sourceField.Buffer)
 		config.destinationDirectory = string(destinationField.Buffer)
-		go runDeflickering()
+		deflickeringError := runDeflickering()
+		if deflickeringError != nil {
+			clear()
+			fmt.Println("An error occured:")
+			fmt.Println(deflickeringError)
+		}
 	}
 }

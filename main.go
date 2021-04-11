@@ -16,7 +16,6 @@ type picture struct {
 }
 
 var config configuration
-var pictures []picture
 
 func main() {
 	//Initial console output
@@ -29,24 +28,36 @@ func main() {
 	os.Exit(0)
 }
 
-func runDeflickering() {
-	fmt.Println("Starting...")
+func runDeflickering() error {
+
+	//Prepare
+	configError := validateConfigInformation()
+	if configError != nil {
+		return configError
+	}
+	clear()
 	runtime.GOMAXPROCS(config.threads)
-	pictures := readDirectory(config.sourceDirectory, config.destinationDirectory)
+	pictures, picturesError := readDirectory(config.sourceDirectory, config.destinationDirectory)
+	if picturesError != nil {
+		return picturesError
+	}
 	progress := createProgressBars(len(pictures))
 	progress.container.Start()
-	//fmt.Printf("%+v\n", pictures)
 
 	//Analyze and create Histograms
-	pictures = forEveryPicture(pictures, progress.bars["analyze"], config.threads, func(pic picture) picture {
-		var img, err = imaging.Open(pic.currentPath)
+	var analyzeError error
+	pictures, analyzeError = forEveryPicture(pictures, progress.bars["analyze"], config.threads, func(pic picture) (picture, error) {
+		img, err := imaging.Open(pic.currentPath)
 		if err != nil {
-			fmt.Printf("'%v': %v\n", pic.targetPath, err)
-			os.Exit(2)
+			return pic, err
 		}
 		pic.currentRgbHistogram = generateRgbHistogramFromImage(img)
-		return pic
+		return pic, nil
 	})
+	if analyzeError != nil {
+		return analyzeError
+	}
+
 	//Calculate global or rolling average
 	if config.rollingAverage < 1 {
 		var averageRgbHistogram rgbHistogram
@@ -92,13 +103,18 @@ func runDeflickering() {
 		}
 	}
 
-	pictures = forEveryPicture(pictures, progress.bars["adjust"], config.threads, func(pic picture) picture {
+	var adjustError error
+	pictures, adjustError = forEveryPicture(pictures, progress.bars["adjust"], config.threads, func(pic picture) (picture, error) {
 		var img, _ = imaging.Open(pic.currentPath)
 		lut := generateRgbLutFromRgbHistograms(pic.currentRgbHistogram, pic.targetRgbHistogram)
 		img = applyRgbLutToImage(img, lut)
-		imaging.Save(img, pic.targetPath, imaging.JPEGQuality(config.jpegCompression), imaging.PNGCompressionLevel(0))
-		return pic
+		saveError := imaging.Save(img, pic.targetPath, imaging.JPEGQuality(config.jpegCompression), imaging.PNGCompressionLevel(0))
+		return pic, saveError
 	})
+	if adjustError != nil {
+		return adjustError
+	}
 	progress.container.Stop()
 	fmt.Println("Finished.")
+	return nil
 }

@@ -37,8 +37,8 @@ func createProgressBars(numberOfPictures int) progressInfo {
 		return progressBarFunction(b, "Adjusting")
 	}
 
-	tmpProgress.bars["adjust"].AppendFunc(progressBarFunctionAnalyze)
-	tmpProgress.bars["analyze"].AppendFunc(progressBarFunctionAdjust)
+	tmpProgress.bars["adjust"].AppendFunc(progressBarFunctionAdjust)
+	tmpProgress.bars["analyze"].AppendFunc(progressBarFunctionAnalyze)
 
 	return tmpProgress
 }
