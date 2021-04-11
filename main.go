@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+
 	"github.com/disintegration/imaging"
 )
 
@@ -14,19 +15,21 @@ type picture struct {
 	targetRgbHistogram  rgbHistogram
 }
 
-func main() {
+var config configuration
+var pictures []picture
 
+func main() {
 	//Initial console output
 	printInfo()
 	//Read parameters from console
-	config := collectConfigInformation()
+	config = collectConfigInformation()
 	//Initialize Window from config and start GUI
-	initalizeWindow(config)
+	initalizeWindow()
 	window.Main()
 	os.Exit(0)
 }
 
-func runDeflickering(config configuration) {
+func runDeflickering() {
 	fmt.Println("Starting...")
 	runtime.GOMAXPROCS(config.threads)
 	pictures := readDirectory(config.sourceDirectory, config.destinationDirectory)
