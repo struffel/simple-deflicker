@@ -21,11 +21,6 @@ Timelapse flickering can occur if one or more settings of the camera have been l
 ## How does the deflickering work?
 The current implementation uses a technique called [histogram matching](https://en.wikipedia.org/wiki/Histogram_matching). It basically creates a list of how often a certain brighness (or rather every individual brightness level) appears, creates a [rolling average](https://en.wikipedia.org/wiki/Moving_average) to allow for gradual brightness changes (for example in a day to night transition) and finally shifts the brightness to match the "smoothed out" brightness levels.
 
-## What's planned for the future
-* Compiled binaries for more operating systems (linux and macOS)
-* Maybe a proper GUI (though CLI will remain possible)
-* 16bit image support
-
 ## How is the software structured? (only important for developers, not for users)
 The software uses several other packages:
 * [Imaging](https://github.com/disintegration/imaging) for loading, saving and manipulating image files.
