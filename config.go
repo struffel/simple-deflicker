@@ -28,23 +28,23 @@ func validateConfigInformation() error {
 	description := ""
 	//Test for illegal inputs
 	if config.jpegCompression < 1 || config.jpegCompression > 100 {
-		description += "- Invalid JPEG compression setting. Value must be between 1 and 100 (inclusive).\n"
+		description += "Invalid JPEG compression setting. Value must be between 1 and 100 (inclusive).\n"
 	}
 	if config.threads < 1 {
-		description += "- Invalid number of threads. There must be at least one thread.\n"
+		description += "Invalid number of threads. There must be at least one thread.\n"
 	}
 	if config.rollingAverage < 1 {
-		description += "- Invalid rolling average. Value must be equal to or greater than 1.\n"
+		description += "Invalid rolling average. Value must be equal to or greater than 1.\n"
 	}
 	if config.sourceDirectory == "" {
-		description += "- No source directory specified.\n"
+		description += "No source directory specified.\n"
 	} else if !testForDirectory(config.sourceDirectory) {
-		description += "- The source directory could not be found.\n"
+		description += "The source directory could not be found.\n"
 	}
 	if config.destinationDirectory == "" {
-		description += "- No destination directory specified.\n"
+		description += "No destination directory specified.\n"
 	} else if !testForDirectory(config.destinationDirectory) {
-		description += "- The destination directory could not be found.\n"
+		description += "The destination directory could not be found.\n"
 	}
 	if description != "" {
 		return errors.New(description)
