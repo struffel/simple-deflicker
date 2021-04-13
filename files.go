@@ -26,7 +26,7 @@ func readDirectory(currentDirectory string, targetDirectory string) ([]picture, 
 		}
 	}
 	if len(pictures) < 1 {
-		return pictures, errors.New("The source directory does not contain any compatible images (JPG or PNG)")
+		return pictures, errors.New("the source directory does not contain any compatible images (JPG or PNG)")
 	}
 	return pictures, nil
 }

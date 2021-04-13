@@ -121,6 +121,7 @@ func runDeflickering() error {
 		return adjustError
 	}
 	progress.container.Stop()
-	fmt.Println("Finished.")
+	clear()
+	fmt.Printf("%v\nProcessed %v pictures without errors.", config.sourceDirectory, len(pictures))
 	return nil
 }
