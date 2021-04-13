@@ -8,32 +8,30 @@ import (
 )
 
 func forEveryPicture(pictures []picture, progressBar *uiprogress.Bar, threads int, f func(pic picture) (picture, error)) ([]picture, error) {
-	tokens := make(chan bool, threads)
-	errors := make(chan error)
+	tokens := make(chan error, threads)
+	var err error
 	for i := 0; i < threads; i++ {
-		tokens <- true
+		tokens <- nil
 	}
 	for i := range pictures {
-		select {
-		case <-tokens:
-
-		case err := <-errors:
+		err = <-tokens
+		if err != nil {
 			return pictures, err
 		}
 		go func(i int) {
+			var functionError error
 			defer func() {
 				progressBar.Incr()
-				tokens <- true
+				tokens <- functionError
 			}()
-			var functionError error
 			pictures[i], functionError = f(pictures[i])
-			if functionError != nil {
-				errors <- functionError
-			}
 		}(i)
 	}
 	for i := 0; i < threads; i++ {
-		_ = <-tokens
+		err = <-tokens
+		if err != nil {
+			return pictures, err
+		}
 	}
 	return pictures, nil
 }

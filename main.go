@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"runtime"
@@ -49,12 +50,13 @@ func runDeflickering() error {
 	pictures, analyzeError = forEveryPicture(pictures, progress.bars["analyze"], config.threads, func(pic picture) (picture, error) {
 		img, err := imaging.Open(pic.currentPath)
 		if err != nil {
-			return pic, err
+			return pic, errors.New(pic.currentPath + " | " + err.Error())
 		}
 		pic.currentRgbHistogram = generateRgbHistogramFromImage(img)
 		return pic, nil
 	})
 	if analyzeError != nil {
+		progress.container.Stop()
 		return analyzeError
 	}
 
@@ -108,10 +110,14 @@ func runDeflickering() error {
 		var img, _ = imaging.Open(pic.currentPath)
 		lut := generateRgbLutFromRgbHistograms(pic.currentRgbHistogram, pic.targetRgbHistogram)
 		img = applyRgbLutToImage(img, lut)
-		saveError := imaging.Save(img, pic.targetPath, imaging.JPEGQuality(config.jpegCompression), imaging.PNGCompressionLevel(0))
-		return pic, saveError
+		err := imaging.Save(img, pic.targetPath, imaging.JPEGQuality(config.jpegCompression), imaging.PNGCompressionLevel(0))
+		if err != nil {
+			return pic, errors.New(pic.currentPath + " | " + err.Error())
+		}
+		return pic, nil
 	})
 	if adjustError != nil {
+		progress.container.Stop()
 		return adjustError
 	}
 	progress.container.Stop()

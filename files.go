@@ -16,9 +16,7 @@ func readDirectory(currentDirectory string, targetDirectory string) ([]picture, 
 	//Get list of files
 	files, err := ioutil.ReadDir(currentDirectory)
 	if err != nil {
-		fmt.Printf("'%v': %v\n", currentDirectory, err)
-		dialog.Message("%s", "The source directory could not be opened.").Title("Source Directory could not be Loaded").Error()
-		os.Exit(1)
+		return pictures, err
 	}
 	//Prepare slice of pictures
 	for _, file := range files {
