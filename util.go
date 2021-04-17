@@ -37,7 +37,7 @@ func forEveryPicture(pictures []picture, progressBar *uiprogress.Bar, threads in
 }
 func printInfo() {
 	fmt.Println("SIMPLE DEFLICKER")
-	fmt.Println("v0.2.0 / github.com/StruffelProductions/simple-deflicker")
+	fmt.Println("v0.3.0 / github.com/StruffelProductions/simple-deflicker")
 }
 func clear() {
 	screen.MoveTopLeft()
