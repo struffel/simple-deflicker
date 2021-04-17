@@ -9,8 +9,9 @@ Timelapse flickering can occur if one or more settings of the camera have been l
 
 ## How to use this software
 * Download the latest version from the [releases page](https://github.com/StruffelProductions/simple-deflicker/releases). The compiled binary is only available for windows at this point
-* Execute simple-deflicker.exe either by double-clicking it or by launching it from the console. If launched without any arguments Simple Deflicker will ask you to specify a source and destination folder. Read the [wiki](https://github.com/StruffelProductions/simple-deflicker/wiki) for more details.
-* The software will then start deflickering the images.
+* Execute simple-deflicker.exe. Starting with v0.3.0 there will be a (very basic) GUI to enter all the settings. Check the console for error messages.
+![image](https://user-images.githubusercontent.com/31403260/115123359-f2bbe400-9fbc-11eb-84d7-29615c5030fb.png)
+
 
 ## Current limitations of the tool
 * Only JPG and PNG (8bit) are supported
@@ -26,11 +27,5 @@ The software uses several other packages:
 * [Imaging](https://github.com/disintegration/imaging) for loading, saving and manipulating image files.
 * [dialog](https://github.com/sqweek/dialog) for creating the dialog boxes and file selection windows.
 * [uiprogress](https://github.com/gosuri/uiprogress) for creating the progress bars in the console.
+* [nucular](https://github.com/aarzilli/nucular) for the GUI.
 
-Let's take a quick tour through all the files:
-* **main.go** contains the main() function as well as the runDeflickering() function which orchestrate the entire process.
-* **histogram.go** contains the mathematical operations for handeling histograms and luts (Look up tables) used for deflickering
-* **files.go** deals with the filesystem. It parses the source directory for images and creates the destination directory if it does not exist.
-* **config.go** deals with the configuration, either via args or (if the args parameters are missing) by creating a pop-up to let users make a selection.
-* **progress.go** is responsible for managing the progress bars in the console window.
-* **util.go** contains various helper functions.
