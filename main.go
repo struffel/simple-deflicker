@@ -1,15 +1,12 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"runtime"
-	"time"
-
-	"github.com/skratchdot/open-golang/open"
 
 	"github.com/disintegration/imaging"
-	"github.com/gosuri/uiprogress"
 )
 
 type picture struct {
@@ -20,40 +17,49 @@ type picture struct {
 }
 
 func main() {
+	//Initial console output
 	printInfo()
-
-	config := collectConfigInformation()
-
-	makeDirectoryIfNotExists(config.destinationDirectory)
-
-	//Set number of CPU cores to use
-	runtime.GOMAXPROCS(config.threads)
-
-	pictures := readDirectory(config.sourceDirectory, config.destinationDirectory)
-	runDeflickering(pictures, config)
-	open.Start(config.destinationDirectory)
-	fmt.Println("Finished. This window will close itself in 5 seconds")
-	time.Sleep(time.Second * 5)
+	//Read parameters from console
+	config = collectConfigInformation()
+	//Initialize Window from config and start GUI
+	initalizeWindow()
+	window.Main()
 	os.Exit(0)
 }
 
-func runDeflickering(pictures []picture, config configuration) {
-	uiprogress.Start() // start rendering
-	progressBars := createProgressBars(len(pictures))
+func runDeflickering() error {
+
+	//Prepare
+	configError := validateConfigInformation()
+	if configError != nil {
+		return configError
+	}
+	clear()
+	runtime.GOMAXPROCS(config.threads)
+	pictures, picturesError := readDirectory(config.sourceDirectory, config.destinationDirectory)
+	if picturesError != nil {
+		return picturesError
+	}
+	progress := createProgressBars(len(pictures))
+	progress.container.Start()
 
 	//Analyze and create Histograms
-	pictures = forEveryPicture(pictures, progressBars.analyze, config.threads, func(pic picture) picture {
-		var img, err = imaging.Open(pic.currentPath)
+	var analyzeError error
+	pictures, analyzeError = forEveryPicture(pictures, progress.bars["analyze"], config.threads, func(pic picture) (picture, error) {
+		img, err := imaging.Open(pic.currentPath)
 		if err != nil {
-			fmt.Printf("'%v': %v\n", pic.targetPath, err)
-			os.Exit(2)
+			return pic, errors.New(pic.currentPath + " | " + err.Error())
 		}
 		pic.currentRgbHistogram = generateRgbHistogramFromImage(img)
-		return pic
+		return pic, nil
 	})
+	if analyzeError != nil {
+		progress.container.Stop()
+		return analyzeError
+	}
 
 	//Calculate global or rolling average
-	if config.rollingaverage < 1 {
+	if config.rollingAverage < 1 {
 		var averageRgbHistogram rgbHistogram
 		for i := range pictures {
 			for j := 0; j < 256; j++ {
@@ -73,11 +79,11 @@ func runDeflickering(pictures []picture, config configuration) {
 	} else {
 		for i := range pictures {
 			var averageRgbHistogram rgbHistogram
-			var start = i - config.rollingaverage
+			var start = i - config.rollingAverage
 			if start < 0 {
 				start = 0
 			}
-			var end = i + config.rollingaverage
+			var end = i + config.rollingAverage
 			if end > len(pictures)-1 {
 				end = len(pictures) - 1
 			}
@@ -97,12 +103,23 @@ func runDeflickering(pictures []picture, config configuration) {
 		}
 	}
 
-	pictures = forEveryPicture(pictures, progressBars.adjust, config.threads, func(pic picture) picture {
+	var adjustError error
+	pictures, adjustError = forEveryPicture(pictures, progress.bars["adjust"], config.threads, func(pic picture) (picture, error) {
 		var img, _ = imaging.Open(pic.currentPath)
 		lut := generateRgbLutFromRgbHistograms(pic.currentRgbHistogram, pic.targetRgbHistogram)
 		img = applyRgbLutToImage(img, lut)
-		imaging.Save(img, pic.targetPath, imaging.JPEGQuality(config.jpegcompression), imaging.PNGCompressionLevel(0))
-		return pic
+		err := imaging.Save(img, pic.targetPath, imaging.JPEGQuality(config.jpegCompression), imaging.PNGCompressionLevel(0))
+		if err != nil {
+			return pic, errors.New(pic.currentPath + " | " + err.Error())
+		}
+		return pic, nil
 	})
-	uiprogress.Stop()
+	if adjustError != nil {
+		progress.container.Stop()
+		return adjustError
+	}
+	progress.container.Stop()
+	clear()
+	fmt.Printf("Saved %v pictures into %v", len(pictures),config.destinationDirectory)
+	return nil
 }
