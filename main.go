@@ -16,8 +16,6 @@ type picture struct {
 	targetRgbHistogram  rgbHistogram
 }
 
-var config configuration
-
 func main() {
 	//Initial console output
 	printInfo()
@@ -122,6 +120,6 @@ func runDeflickering() error {
 	}
 	progress.container.Stop()
 	clear()
-	fmt.Printf("%v\nProcessed %v pictures without errors.", config.sourceDirectory, len(pictures))
+	fmt.Printf("Saved %v pictures into %v", len(pictures),config.destinationDirectory)
 	return nil
 }

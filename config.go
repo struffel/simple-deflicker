@@ -14,6 +14,8 @@ type configuration struct {
 	threads              int
 }
 
+var config configuration
+
 func collectConfigInformation() configuration {
 	var config configuration
 	flag.StringVar(&config.sourceDirectory, "source", "", "Directory with the images to process.")
