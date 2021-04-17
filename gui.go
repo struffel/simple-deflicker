@@ -37,9 +37,6 @@ func windowUpdateFunction(w *nucular.Window) {
 	if w.ButtonText("Browse") {
 		directory, _ := dialog.Directory().Title("Select a source directory.").Browse()
 		sourceField.Buffer = []rune(filepath.ToSlash(directory))
-		if len(destinationField.Buffer) == 0 && len(sourceField.Buffer) > 0 {
-			destinationField.Buffer = []rune(filepath.Join(string(sourceField.Buffer), "deflickered"))
-		}
 	}
 	w.Row(25).Dynamic(1)
 	//Destination Directory
