@@ -33,7 +33,7 @@ func validateConfigInformation() error {
 	if config.threads < 1 {
 		description += "Invalid number of threads. There must be at least one thread.\n"
 	}
-	if config.rollingAverage < 1 {
+	if config.rollingAverage < 0 {
 		description += "Invalid rolling average. Value must be equal to or greater than 1.\n"
 	}
 	if config.sourceDirectory == "" {
