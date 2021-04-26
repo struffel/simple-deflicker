@@ -82,6 +82,54 @@ func generateRgbLutFromRgbHistograms(current rgbHistogram, target rgbHistogram) 
 	return lut
 }
 
+func addTargetHistograms(pictures []picture) []picture {
+	//Calculate global or rolling average
+	if config.rollingAverage < 1 {
+		var averageRgbHistogram rgbHistogram
+		for i := range pictures {
+			for j := 0; j < 256; j++ {
+				averageRgbHistogram.r[j] += pictures[i].currentRgbHistogram.r[j]
+				averageRgbHistogram.g[j] += pictures[i].currentRgbHistogram.g[j]
+				averageRgbHistogram.b[j] += pictures[i].currentRgbHistogram.b[j]
+			}
+		}
+		for i := 0; i < 256; i++ {
+			averageRgbHistogram.r[i] /= uint32(len(pictures))
+			averageRgbHistogram.g[i] /= uint32(len(pictures))
+			averageRgbHistogram.b[i] /= uint32(len(pictures))
+		}
+		for i := range pictures {
+			pictures[i].targetRgbHistogram = averageRgbHistogram
+		}
+	} else {
+		for i := range pictures {
+			var averageRgbHistogram rgbHistogram
+			var start = i - config.rollingAverage
+			if start < 0 {
+				start = 0
+			}
+			var end = i + config.rollingAverage
+			if end > len(pictures)-1 {
+				end = len(pictures) - 1
+			}
+			for i := start; i <= end; i++ {
+				for j := 0; j < 256; j++ {
+					averageRgbHistogram.r[j] += pictures[i].currentRgbHistogram.r[j]
+					averageRgbHistogram.g[j] += pictures[i].currentRgbHistogram.g[j]
+					averageRgbHistogram.b[j] += pictures[i].currentRgbHistogram.b[j]
+				}
+			}
+			for i := 0; i < 256; i++ {
+				averageRgbHistogram.r[i] /= uint32(end - start + 1)
+				averageRgbHistogram.g[i] /= uint32(end - start + 1)
+				averageRgbHistogram.b[i] /= uint32(end - start + 1)
+			}
+			pictures[i].targetRgbHistogram = averageRgbHistogram
+		}
+	}
+	return pictures
+}
+
 func applyRgbLutToImage(input image.Image, lut rgbLut) image.Image {
 	result := imaging.AdjustFunc(input, func(c color.NRGBA) color.NRGBA {
 		c.R = uint8(lut.r[c.R])
