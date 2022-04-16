@@ -1,6 +1,5 @@
 # Simple Deflicker
-A minimalist, lightning-fast and easy to use tool for deflickering image sequences such as timelapses.
-It's still in its early stages of development.
+A minimalist, easy to use tool for deflickering image sequences such as timelapses.
 
 ![Short Demo](demo_church.gif)
 
