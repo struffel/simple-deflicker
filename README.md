@@ -11,6 +11,32 @@ Timelapse flickering can occur if one or more settings of the camera have been l
 * Execute simple-deflicker.exe. Starting with v0.3.0 there will be a (very basic) GUI to enter all the settings. Check the console for error messages.
 ![image](https://user-images.githubusercontent.com/31403260/115123359-f2bbe400-9fbc-11eb-84d7-29615c5030fb.png)
 
+## CLI usage
+Simple Deflicker can run without the GUI by passing a source and destination directory:
+
+```bash
+simple-deflicker -source "/path/to/input" -destination "/path/to/output"
+```
+
+Optional flags:
+
+```bash
+simple-deflicker -source "/path/to/input" -destination "/path/to/output" -rollingAverage 15 -jpegCompression 95 -threads 8
+```
+
+Build a CLI-only binary:
+
+```bash
+go build -tags cli -o simple-deflicker
+```
+
+macOS builds are CLI-only:
+
+```bash
+GOOS=darwin GOARCH=arm64 go build -o simple-deflicker-macos-arm64
+GOOS=darwin GOARCH=amd64 go build -o simple-deflicker-macos-amd64
+```
+
 
 ## Current limitations of the tool
 * Only JPG and PNG (8bit) are supported
@@ -27,4 +53,3 @@ The software uses several other packages:
 * [dialog](https://github.com/sqweek/dialog) for creating the dialog boxes and file selection windows.
 * [uiprogress](https://github.com/gosuri/uiprogress) for creating the progress bars in the console.
 * [nucular](https://github.com/aarzilli/nucular) for the GUI.
-
