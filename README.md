@@ -7,8 +7,8 @@ A minimalist, easy to use tool for deflickering image sequences such as timelaps
 Timelapse flickering can occur if one or more settings of the camera have been left on "auto" which causes it to randomly switch between two settings (for example shutter speeds).
 
 ## How to use this software
-* Download the latest version from the [releases page](https://github.com/StruffelProductions/simple-deflicker/releases). The compiled binary is only available for windows at this point
-* Execute simple-deflicker.exe. Starting with v0.3.0 there will be a (very basic) GUI to enter all the settings. Check the console for error messages.
+* Download the latest version from the [releases page](https://github.com/StruffelProductions/simple-deflicker/releases). Prebuilt binaries are provided for Windows, and macOS builds are CLI-only.
+* Execute `simple-deflicker.exe` on Windows to use the GUI. Check the console for error messages.
 ![image](https://user-images.githubusercontent.com/31403260/115123359-f2bbe400-9fbc-11eb-84d7-29615c5030fb.png)
 
 ## CLI usage
@@ -36,6 +36,8 @@ macOS builds are CLI-only:
 GOOS=darwin GOARCH=arm64 go build -o simple-deflicker-macos-arm64
 GOOS=darwin GOARCH=amd64 go build -o simple-deflicker-macos-amd64
 ```
+
+On platforms built with the `cli` tag, the GUI is disabled and `-source` plus `-destination` are required.
 
 
 ## Current limitations of the tool
