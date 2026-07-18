@@ -1,5 +1,5 @@
-//go:build darwin || cli
-// +build darwin cli
+//go:build cli
+// +build cli
 
 package main
 
