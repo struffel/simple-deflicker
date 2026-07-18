@@ -21,10 +21,27 @@ func main() {
 	printInfo()
 	//Read parameters from console
 	config = collectConfigInformation()
+	if shouldRunCli(config) {
+		deflickeringError := runDeflickering()
+		if deflickeringError != nil {
+			clear()
+			fmt.Println("An error occured:")
+			fmt.Println(deflickeringError)
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}
 	//Initialize Window from config and start GUI
-	initalizeWindow()
-	window.Main()
+	guiError := startGUI()
+	if guiError != nil {
+		fmt.Println(guiError)
+		os.Exit(1)
+	}
 	os.Exit(0)
+}
+
+func shouldRunCli(config configuration) bool {
+	return config.sourceDirectory != "" || config.destinationDirectory != ""
 }
 
 func runDeflickering() error {

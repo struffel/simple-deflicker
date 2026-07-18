@@ -3,6 +3,7 @@ package main
 import (
 	"image"
 	"image/color"
+	"math"
 
 	"github.com/disintegration/imaging"
 )
@@ -19,6 +20,11 @@ type rgbHistogram struct {
 	g histogram
 	b histogram
 }
+
+const (
+	lutCorrectionStrength = 0.8
+	lutSmoothingRadius    = 5
+)
 
 func generateRgbHistogramFromImage(input image.Image) rgbHistogram {
 	var rgbHistogram rgbHistogram
@@ -79,6 +85,9 @@ func generateRgbLutFromRgbHistograms(current rgbHistogram, target rgbHistogram) 
 		lut.g[i] = p[1]
 		lut.b[i] = p[2]
 	}
+	lut.r = regularizeLut(lut.r)
+	lut.g = regularizeLut(lut.g)
+	lut.b = regularizeLut(lut.b)
 	return lut
 }
 
@@ -90,4 +99,43 @@ func applyRgbLutToImage(input image.Image, lut rgbLut) image.Image {
 		return c
 	})
 	return result
+}
+
+func regularizeLut(input lut) lut {
+	var smoothed lut
+	for i := 0; i < 256; i++ {
+		sum := 0
+		count := 0
+		for j := i - lutSmoothingRadius; j <= i+lutSmoothingRadius; j++ {
+			if j < 0 || j > 255 {
+				continue
+			}
+			sum += int(input[j])
+			count++
+		}
+		smoothed[i] = uint8(sum / count)
+	}
+	for i := 1; i < 256; i++ {
+		if smoothed[i] < smoothed[i-1] {
+			smoothed[i] = smoothed[i-1]
+		}
+	}
+
+	var result lut
+	for i := 0; i < 256; i++ {
+		corrected := float64(smoothed[i])*lutCorrectionStrength + float64(i)*(1-lutCorrectionStrength)
+		result[i] = clampUint8(corrected)
+	}
+	return result
+}
+
+func clampUint8(value float64) uint8 {
+	value = math.Round(value)
+	if value < 0 {
+		return 0
+	}
+	if value > 255 {
+		return 255
+	}
+	return uint8(value)
 }

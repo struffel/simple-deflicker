@@ -1,3 +1,6 @@
+//go:build !darwin && !cli
+// +build !darwin,!cli
+
 package main
 
 import (
@@ -15,6 +18,12 @@ import (
 var window = nucular.NewMasterWindowSize(0, "Simple Deflicker", image.Point{450, 450}, windowUpdateFunction)
 var sourceField nucular.TextEditor
 var destinationField nucular.TextEditor
+
+func startGUI() error {
+	initalizeWindow()
+	window.Main()
+	return nil
+}
 
 func initalizeWindow() {
 	window.SetStyle(style.FromTheme(style.DarkTheme, 1.0))
