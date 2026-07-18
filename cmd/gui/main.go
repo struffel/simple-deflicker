@@ -9,28 +9,8 @@ import (
 	"github.com/disintegration/imaging"
 )
 
-type picture struct {
-	currentPath         string
-	targetPath          string
-	currentRgbHistogram rgbHistogram
-	targetRgbHistogram  rgbHistogram
-}
-
 func main() {
-	//Initial console output
-	printInfo()
-	//Read parameters from console
-	config = collectConfigInformation()
-	if shouldRunCli(config) {
-		deflickeringError := runDeflickering()
-		if deflickeringError != nil {
-			clear()
-			fmt.Println("An error occured:")
-			fmt.Println(deflickeringError)
-			os.Exit(1)
-		}
-		os.Exit(0)
-	}
+
 	//Initialize Window from config and start GUI
 	guiError := startGUI()
 	if guiError != nil {
@@ -137,6 +117,6 @@ func runDeflickering() error {
 	}
 	progress.container.Stop()
 	clear()
-	fmt.Printf("Saved %v pictures into %v", len(pictures),config.destinationDirectory)
+	fmt.Printf("Saved %v pictures into %v", len(pictures), config.destinationDirectory)
 	return nil
 }

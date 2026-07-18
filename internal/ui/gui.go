@@ -1,7 +1,7 @@
 //go:build !cli
 // +build !cli
 
-package main
+package ui
 
 import (
 	"fmt"
@@ -18,54 +18,6 @@ import (
 
 	"github.com/ncruces/zenity"
 )
-
-// guiState holds all the widgets and channels used to communicate results
-// from background goroutines (file dialogs, processing) back to the single
-// goroutine that owns the Gio window and its widgets.
-type guiState struct {
-	sourceEditor      widget.Editor
-	destinationEditor widget.Editor
-	rollingAvgEditor  widget.Editor
-	jpegQualityEditor widget.Editor
-	threadsEditor     widget.Editor
-
-	browseSourceBtn      widget.Clickable
-	browseDestinationBtn widget.Clickable
-	startBtn             widget.Clickable
-
-	sourceResult      chan string
-	destinationResult chan string
-	deflickerResult   chan error
-
-	processing bool
-	statusText string
-}
-
-func newGuiState() *guiState {
-	state := &guiState{
-		sourceResult:      make(chan string, 1),
-		destinationResult: make(chan string, 1),
-		deflickerResult:   make(chan error, 1),
-	}
-	state.sourceEditor.SingleLine = true
-	state.sourceEditor.SetText(config.sourceDirectory)
-
-	state.destinationEditor.SingleLine = true
-	state.destinationEditor.SetText(config.destinationDirectory)
-
-	state.rollingAvgEditor.SingleLine = true
-	state.rollingAvgEditor.Filter = "0123456789"
-	state.rollingAvgEditor.SetText(strconv.Itoa(config.rollingAverage))
-
-	state.jpegQualityEditor.SingleLine = true
-	state.jpegQualityEditor.Filter = "0123456789"
-	state.jpegQualityEditor.SetText(strconv.Itoa(config.jpegCompression))
-
-	state.threadsEditor.SingleLine = true
-	state.threadsEditor.Filter = "0123456789"
-	state.threadsEditor.SetText(strconv.Itoa(config.threads))
-	return state
-}
 
 func startGUI() error {
 	go func() {
