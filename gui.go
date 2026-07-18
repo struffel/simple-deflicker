@@ -61,7 +61,7 @@ func windowUpdateFunction(w *nucular.Window) {
 		deflickeringError := runDeflickering()
 		if deflickeringError != nil {
 			clear()
-			fmt.Println("An error occured:")
+			fmt.Println("An error occurred:")
 			fmt.Println(deflickeringError)
 		}
 	}
