@@ -4,11 +4,11 @@ import (
 	"strconv"
 
 	"gioui.org/widget"
-	"github.com/struffel/simple-deflicker/internal"
+	"github.com/struffel/simple-deflicker/internal/deflicker"
 )
 
 type UiState struct {
-	Settings internal.Settings
+	Settings deflicker.Settings
 
 	sourceResult      chan string
 	destinationResult chan string
@@ -21,15 +21,16 @@ type UiState struct {
 	destinationEditor widget.Editor
 	rollingAvgEditor  widget.Editor
 	jpegQualityEditor widget.Editor
-	threadsEditor     widget.Editor
+	formatEnum        widget.Enum
 
 	browseSourceBtn      widget.Clickable
 	browseDestinationBtn widget.Clickable
 	startBtn             widget.Clickable
 }
 
-func NewUiState(settings internal.Settings) *UiState {
+func NewUiState(settings deflicker.Settings) *UiState {
 	state := &UiState{
+		Settings:          settings,
 		sourceResult:      make(chan string, 1),
 		destinationResult: make(chan string, 1),
 		deflickerResult:   make(chan error, 1),
@@ -48,10 +49,17 @@ func NewUiState(settings internal.Settings) *UiState {
 
 	state.jpegQualityEditor.SingleLine = true
 	state.jpegQualityEditor.Filter = "0123456789"
-	state.jpegQualityEditor.SetText(strconv.Itoa(settings.JpegCompression))
+	state.jpegQualityEditor.SetText(strconv.Itoa(settings.JpegQuality))
 
-	state.threadsEditor.SingleLine = true
-	state.threadsEditor.Filter = "0123456789"
-	state.threadsEditor.SetText(strconv.Itoa(settings.Threads))
+	state.formatEnum.Value = string(settings.OutFormat)
 	return state
+}
+
+// DefaultSettings returns the settings the GUI is pre-populated with.
+func DefaultSettings() deflicker.Settings {
+	return deflicker.Settings{
+		RollingAverage: 15,
+		OutFormat:      deflicker.FormatPng,
+		JpegQuality:    95,
+	}
 }

@@ -15,29 +15,28 @@ Timelapse flickering can occur if one or more settings of the camera have been l
 Simple Deflicker can run without the GUI by passing a source and destination directory:
 
 ```bash
-simple-deflicker -source "/path/to/input" -destination "/path/to/output"
+simple-deflicker-cli -source "/path/to/input" -destination "/path/to/output"
 ```
 
 Optional flags:
 
 ```bash
-simple-deflicker -source "/path/to/input" -destination "/path/to/output" -rollingAverage 15 -jpegCompression 95 -threads 8
+simple-deflicker-cli -source "/path/to/input" -destination "/path/to/output" -rollingAverage 15 -format png -jpegQuality 95
 ```
 
-Build a CLI-only binary:
+The GUI and CLI are separate binaries, built from `./cmd/gui` and `./cmd/cli` respectively:
 
 ```bash
-go build -tags cli -o simple-deflicker
+go build -o simple-deflicker ./cmd/gui
+go build -o simple-deflicker-cli ./cmd/cli
 ```
 
-macOS builds are CLI-only:
+macOS builds only support the CLI binary:
 
 ```bash
-GOOS=darwin GOARCH=arm64 go build -o simple-deflicker-macos-arm64
-GOOS=darwin GOARCH=amd64 go build -o simple-deflicker-macos-amd64
+GOOS=darwin GOARCH=arm64 go build -o simple-deflicker-cli-macos-arm64 ./cmd/cli
+GOOS=darwin GOARCH=amd64 go build -o simple-deflicker-cli-macos-amd64 ./cmd/cli
 ```
-
-On platforms built with the `cli` tag, the GUI is disabled and `-source` plus `-destination` are required.
 
 
 ## Current limitations of the tool

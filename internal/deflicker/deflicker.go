@@ -80,6 +80,7 @@ func AdjustImages(pictures *[]PictureInfo, settings Settings, updater progress.U
 func FillDesiredHistograms(pictures *[]PictureInfo, updater progress.Updater, rollingAverage int) error {
 
 	if rollingAverage < 1 {
+		// Simply calculate the global average histogram
 		var averageRgbHistogram RgbHistogram
 		for i := range *pictures {
 			for j := 0; j < 256; j++ {
@@ -98,6 +99,7 @@ func FillDesiredHistograms(pictures *[]PictureInfo, updater progress.Updater, ro
 			(*pictures)[i].DesiredRgbHistogram = averageRgbHistogram
 		}
 	} else {
+		// Calculate the rolling average histogram for each image
 		for i := range *pictures {
 			var averageRgbHistogram RgbHistogram
 			var start = i - rollingAverage
@@ -136,7 +138,7 @@ func GetSourcePictureInfo(directory string, updater progress.Updater) ([]Picture
 		return nil, err
 	}
 
-	// Filter down to the compatible image file names, preserving directory order
+	// Filter down to the compatible image file names
 	var imageNames []string
 	for _, file := range files {
 		extension := strings.ToLower(filepath.Ext(file.Name()))
@@ -155,7 +157,7 @@ func GetSourcePictureInfo(directory string, updater progress.Updater) ([]Picture
 	var g errgroup.Group
 	g.SetLimit(runtime.NumCPU())
 
-	// Calculate histograms concurrently, writing results into their original index to preserve order
+	// Calculate histograms concurrently
 	for index, name := range imageNames {
 		g.Go(func() error {
 			image, err := ReadImage(filepath.Join(directory, name))

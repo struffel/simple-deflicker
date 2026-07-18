@@ -1,6 +1,3 @@
-//go:build !cli
-// +build !cli
-
 package ui
 
 import (
@@ -13,13 +10,17 @@ import (
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/unit"
-	"gioui.org/widget"
 	"gioui.org/widget/material"
 
 	"github.com/ncruces/zenity"
+
+	"github.com/struffel/simple-deflicker/internal/deflicker"
+	"github.com/struffel/simple-deflicker/internal/progress"
 )
 
-func startGUI() error {
+// StartGUI launches the graphical user interface and blocks until the
+// window is closed.
+func StartGUI() error {
 	go func() {
 		w := new(app.Window)
 		w.Option(app.Title("Simple Deflicker"), app.Size(unit.Dp(480), unit.Dp(420)))
@@ -35,7 +36,7 @@ func startGUI() error {
 
 func runWindow(w *app.Window) error {
 	theme := material.NewTheme()
-	state := newGuiState()
+	state := NewUiState(DefaultSettings())
 
 	var ops op.Ops
 	for {
@@ -55,7 +56,7 @@ func runWindow(w *app.Window) error {
 // receiveGuiResults applies any results delivered by background goroutines
 // (directory pickers, deflickering) to the widget state. It must only be
 // called from the goroutine that owns the window.
-func receiveGuiResults(state *guiState) {
+func receiveGuiResults(state *UiState) {
 	select {
 	case dir := <-state.sourceResult:
 		state.sourceEditor.SetText(filepath.ToSlash(dir))
@@ -73,14 +74,17 @@ func receiveGuiResults(state *guiState) {
 			state.statusText = "An error occurred: " + err.Error()
 			go zenity.Error(err.Error(), zenity.Title("Simple Deflicker - Error"))
 		} else {
-			state.statusText = "Saved pictures into " + config.destinationDirectory
+			state.statusText = "Saved pictures into " + state.Settings.DestinationDirectory
 			go zenity.Info(state.statusText, zenity.Title("Simple Deflicker"))
 		}
 	default:
 	}
 }
 
-func handleGuiEvents(gtx layout.Context, w *app.Window, state *guiState) {
+func handleGuiEvents(gtx layout.Context, w *app.Window, state *UiState) {
+	state.formatEnum.Update(gtx)
+	state.Settings.OutFormat = deflicker.OutputFormat(state.formatEnum.Value)
+
 	if state.browseSourceBtn.Clicked(gtx) {
 		go func() {
 			dir, err := zenity.SelectFile(zenity.Directory(), zenity.Title("Select a source directory."))
@@ -104,103 +108,37 @@ func handleGuiEvents(gtx layout.Context, w *app.Window, state *guiState) {
 	}
 }
 
-// startDeflickering reads the current widget values into config, then runs
-// the deflickering process in the background while a zenity progress dialog
-// gives the user feedback.
-func startDeflickering(w *app.Window, state *guiState) {
-	config.sourceDirectory = filepath.ToSlash(state.sourceEditor.Text())
-	config.destinationDirectory = filepath.ToSlash(state.destinationEditor.Text())
+// startDeflickering reads the current widget values into the settings, then
+// runs the deflickering process in the background while a zenity progress
+// dialog gives the user feedback.
+func startDeflickering(w *app.Window, state *UiState) {
+	state.Settings.SourceDirectory = filepath.ToSlash(state.sourceEditor.Text())
+	state.Settings.DestinationDirectory = filepath.ToSlash(state.destinationEditor.Text())
 	if v, err := strconv.Atoi(state.rollingAvgEditor.Text()); err == nil {
-		config.rollingAverage = v
+		state.Settings.RollingAverage = v
 	}
 	if v, err := strconv.Atoi(state.jpegQualityEditor.Text()); err == nil {
-		config.jpegCompression = v
+		state.Settings.JpegQuality = v
 	}
-	if v, err := strconv.Atoi(state.threadsEditor.Text()); err == nil {
-		config.threads = v
+
+	if validationErrors := state.Settings.Validate(); len(validationErrors) > 0 {
+		msg := ""
+		for _, validationError := range validationErrors {
+			msg += validationError.Error() + "\n"
+		}
+		go zenity.Error(msg, zenity.Title("Simple Deflicker - Invalid settings"))
+		return
 	}
 
 	state.processing = true
 	state.statusText = "Processing..."
+	settings := state.Settings
 
 	go func() {
-		dlg, dlgErr := zenity.Progress(
-			zenity.Title("Simple Deflicker"),
-			zenity.Pulsate(),
-			zenity.NoCancel(),
-		)
-		if dlgErr == nil {
-			dlg.Text("Processing images, this can take a while...")
-		}
-
-		err := runDeflickering()
-
-		if dlgErr == nil {
-			dlg.Complete()
-			dlg.Close()
-		}
-
+		updater := progress.NewZenityUpdater("Simple Deflicker")
+		err := deflicker.Run(settings, updater)
+		updater.Finish()
 		state.deflickerResult <- err
 		w.Invalidate()
 	}()
-}
-
-func layoutGui(gtx layout.Context, th *material.Theme, state *guiState) layout.Dimensions {
-	return layout.UniformInset(unit.Dp(12)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-			layout.Rigid(material.Body1(th, "Source Directory").Layout),
-			layout.Rigid(fullWidthBorderedEditor(th, &state.sourceEditor)),
-			layout.Rigid(layout.Spacer{Height: unit.Dp(4)}.Layout),
-			layout.Rigid(material.Button(th, &state.browseSourceBtn, "Browse").Layout),
-			layout.Rigid(layout.Spacer{Height: unit.Dp(12)}.Layout),
-
-			layout.Rigid(material.Body1(th, "Destination Directory").Layout),
-			layout.Rigid(fullWidthBorderedEditor(th, &state.destinationEditor)),
-			layout.Rigid(layout.Spacer{Height: unit.Dp(4)}.Layout),
-			layout.Rigid(material.Button(th, &state.browseDestinationBtn, "Browse").Layout),
-			layout.Rigid(layout.Spacer{Height: unit.Dp(12)}.Layout),
-
-			layout.Rigid(material.Body1(th, "Advanced settings").Layout),
-			layout.Rigid(layout.Spacer{Height: unit.Dp(4)}.Layout),
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-					layout.Flexed(1, labeledEditor(th, "Rolling average", &state.rollingAvgEditor)),
-					layout.Rigid(layout.Spacer{Width: unit.Dp(8)}.Layout),
-					layout.Flexed(1, labeledEditor(th, "JPEG quality", &state.jpegQualityEditor)),
-					layout.Rigid(layout.Spacer{Width: unit.Dp(8)}.Layout),
-					layout.Flexed(1, labeledEditor(th, "Threads", &state.threadsEditor)),
-				)
-			}),
-			layout.Rigid(layout.Spacer{Height: unit.Dp(16)}.Layout),
-
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				text := "Start"
-				if state.processing {
-					text = "Processing..."
-				}
-				return material.Button(th, &state.startBtn, text).Layout(gtx)
-			}),
-			layout.Rigid(layout.Spacer{Height: unit.Dp(8)}.Layout),
-			layout.Rigid(material.Body2(th, state.statusText).Layout),
-		)
-	})
-}
-
-func labeledEditor(th *material.Theme, label string, ed *widget.Editor) layout.Widget {
-	return func(gtx layout.Context) layout.Dimensions {
-		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-			layout.Rigid(material.Caption(th, label).Layout),
-			layout.Rigid(fullWidthBorderedEditor(th, ed)),
-		)
-	}
-}
-
-func fullWidthBorderedEditor(th *material.Theme, ed *widget.Editor) layout.Widget {
-	return func(gtx layout.Context) layout.Dimensions {
-		gtx.Constraints.Min.X = gtx.Constraints.Max.X
-		border := widget.Border{Color: th.Fg, Width: unit.Dp(1), CornerRadius: unit.Dp(4)}
-		return border.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			return layout.UniformInset(unit.Dp(6)).Layout(gtx, material.Editor(th, ed, "").Layout)
-		})
-	}
 }
