@@ -17,8 +17,6 @@ import (
 	"github.com/struffel/simple-deflicker/internal/deflicker"
 )
 
-// StartGUI launches the graphical user interface and blocks until the
-// window is closed.
 func StartGUI() error {
 	go func() {
 		w := new(app.Window)
@@ -53,8 +51,7 @@ func runWindow(w *app.Window) error {
 }
 
 // receiveGuiResults applies any results delivered by background goroutines
-// (directory pickers, deflickering) to the widget state. It must only be
-// called from the goroutine that owns the window.
+// (directory pickers, deflickering) to the widget state.
 func receiveGuiResults(state *uiState) {
 	select {
 	case dir := <-state.sourceResult:
@@ -147,8 +144,7 @@ func startDeflickering(w *app.Window, state *uiState) {
 }
 
 // guiUpdater implements progress.Updater by writing progress into the UiState
-// and invalidating the window so the native progress bar redraws. It is safe
-// for use from background goroutines.
+// and invalidating the window so the native progress bar redraws.
 type guiUpdater struct {
 	state *uiState
 	win   *app.Window
