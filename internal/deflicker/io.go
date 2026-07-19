@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-func DirectoryExists(path string) bool {
+func directoryExists(path string) bool {
 	stat, err := os.Stat(path)
 	if err == nil && stat.IsDir() {
 		return true
@@ -18,7 +18,7 @@ func DirectoryExists(path string) bool {
 	return false
 }
 
-func ListImagesInDirectory(path string) ([]string, error) {
+func listImagesInDirectory(path string) ([]string, error) {
 	files, err := os.ReadDir(path)
 	if err != nil {
 		return nil, err
@@ -33,7 +33,7 @@ func ListImagesInDirectory(path string) ([]string, error) {
 	return images, nil
 }
 
-func ReadImage(path string) (image.Image, error) {
+func readImage(path string) (image.Image, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -47,7 +47,7 @@ func ReadImage(path string) (image.Image, error) {
 	return img, nil
 }
 
-func SaveImage(img image.Image, path string, format OutputFormat, jpegQuality int) error {
+func saveImage(img image.Image, path string, format OutputFormat, jpegQuality int) error {
 	file, err := os.Create(path)
 	if err != nil {
 		return err

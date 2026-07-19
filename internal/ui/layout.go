@@ -10,21 +10,26 @@ import (
 	"github.com/struffel/simple-deflicker/internal/deflicker"
 )
 
-func layoutGui(gtx layout.Context, th *material.Theme, state *UiState) layout.Dimensions {
+func layoutGui(gtx layout.Context, th *material.Theme, state *uiState) layout.Dimensions {
 	return layout.UniformInset(unit.Dp(12)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+			// Title
+
+			// Source directory
 			layout.Rigid(material.Body1(th, "Source Directory").Layout),
 			layout.Rigid(fullWidthBorderedEditor(th, &state.sourceEditor, false)),
 			layout.Rigid(layout.Spacer{Height: unit.Dp(4)}.Layout),
 			layout.Rigid(material.Button(th, &state.browseSourceBtn, "Browse").Layout),
 			layout.Rigid(layout.Spacer{Height: unit.Dp(12)}.Layout),
 
+			// Destination directory
 			layout.Rigid(material.Body1(th, "Destination Directory").Layout),
 			layout.Rigid(fullWidthBorderedEditor(th, &state.destinationEditor, false)),
 			layout.Rigid(layout.Spacer{Height: unit.Dp(4)}.Layout),
 			layout.Rigid(material.Button(th, &state.browseDestinationBtn, "Browse").Layout),
 			layout.Rigid(layout.Spacer{Height: unit.Dp(12)}.Layout),
 
+			// Advanced settings
 			layout.Rigid(material.Body1(th, "Advanced settings").Layout),
 			layout.Rigid(layout.Spacer{Height: unit.Dp(4)}.Layout),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -39,20 +44,38 @@ func layoutGui(gtx layout.Context, th *material.Theme, state *UiState) layout.Di
 			}),
 			layout.Rigid(layout.Spacer{Height: unit.Dp(16)}.Layout),
 
+			// Start button and progress bar
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				text := "Start"
 				if state.processing {
 					text = "Processing..."
+					if _, progressText := state.progress(); progressText != "" {
+						text = progressText
+					}
+					gtx = gtx.Disabled()
 				}
 				return material.Button(th, &state.startBtn, text).Layout(gtx)
 			}),
+			layout.Rigid(layout.Spacer{Height: unit.Dp(20)}.Layout),
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				fraction, _ := state.progress()
+				bar := material.ProgressBar(th, fraction)
+				bar.Height = unit.Dp(8)
+				return bar.Layout(gtx)
+			}),
 			layout.Rigid(layout.Spacer{Height: unit.Dp(8)}.Layout),
-			layout.Rigid(material.Body2(th, state.statusText).Layout),
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				displayText := state.statusText
+				if state.processing {
+					displayText = ""
+				}
+				return material.Body2(th, displayText).Layout(gtx)
+			}),
 		)
 	})
 }
 
-func formatSelector(th *material.Theme, state *UiState) layout.Widget {
+func formatSelector(th *material.Theme, state *uiState) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 			layout.Rigid(material.Caption(th, "Output format").Layout),

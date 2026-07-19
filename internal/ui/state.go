@@ -2,12 +2,13 @@ package ui
 
 import (
 	"strconv"
+	"sync"
 
 	"gioui.org/widget"
 	"github.com/struffel/simple-deflicker/internal/deflicker"
 )
 
-type UiState struct {
+type uiState struct {
 	Settings deflicker.Settings
 
 	sourceResult      chan string
@@ -16,6 +17,10 @@ type UiState struct {
 
 	processing bool
 	statusText string
+
+	progressMu       sync.Mutex
+	progressFraction float32
+	progressText     string
 
 	sourceEditor      widget.Editor
 	destinationEditor widget.Editor
@@ -28,8 +33,8 @@ type UiState struct {
 	startBtn             widget.Clickable
 }
 
-func NewUiState(settings deflicker.Settings) *UiState {
-	state := &UiState{
+func newUiState(settings deflicker.Settings) *uiState {
+	state := &uiState{
 		Settings:          settings,
 		sourceResult:      make(chan string, 1),
 		destinationResult: make(chan string, 1),
@@ -55,11 +60,19 @@ func NewUiState(settings deflicker.Settings) *UiState {
 	return state
 }
 
-// DefaultSettings returns the settings the GUI is pre-populated with.
-func DefaultSettings() deflicker.Settings {
-	return deflicker.Settings{
-		RollingAverage: 15,
-		OutFormat:      deflicker.FormatPng,
-		JpegQuality:    95,
-	}
+// setProgress updates the current progress fraction (0..1) and status text.
+// It is safe to call from any goroutine.
+func (s *uiState) setProgress(fraction float32, text string) {
+	s.progressMu.Lock()
+	s.progressFraction = fraction
+	s.progressText = text
+	s.progressMu.Unlock()
+}
+
+// progress returns the current progress fraction (0..1) and status text. It
+// is safe to call from any goroutine.
+func (s *uiState) progress() (float32, string) {
+	s.progressMu.Lock()
+	defer s.progressMu.Unlock()
+	return s.progressFraction, s.progressText
 }

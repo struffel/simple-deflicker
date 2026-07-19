@@ -12,6 +12,17 @@ const (
 	FormatPng  OutputFormat = "png"
 )
 
+func (f OutputFormat) Extension() string {
+	switch f {
+	case FormatJpeg:
+		return ".jpg"
+	case FormatPng:
+		return ".png"
+	default:
+		panic("Unknown output format")
+	}
+}
+
 type Settings struct {
 	SourceDirectory      string
 	DestinationDirectory string
@@ -20,18 +31,24 @@ type Settings struct {
 	JpegQuality          int
 }
 
-func (s *Settings) UseGlobalAverage() bool {
-	return s.RollingAverage < 1
+// DefaultSettings returns the settings the GUI is pre-populated and that the CLI uses if no arguments are provided.
+func DefaultSettings() Settings {
+	return Settings{
+		RollingAverage: 15,
+		OutFormat:      FormatPng,
+		JpegQuality:    95,
+	}
 }
 
 func NewSettingsFromArgs() Settings {
+	var defaultSettings = DefaultSettings()
 	var settings Settings
 	var tmpFormat string
 	flag.StringVar(&settings.SourceDirectory, "source", "", "Directory with the images to process.")
 	flag.StringVar(&settings.DestinationDirectory, "destination", "", "Directory to put the processed images in.")
-	flag.IntVar(&settings.RollingAverage, "rollingAverage", 15, "Number of frames to use for rolling average. 0 disables it.")
-	flag.StringVar(&tmpFormat, "format", "png", "Output format. Options are jpeg png.")
-	flag.IntVar(&settings.JpegQuality, "jpegQuality", 95, "Level of JPEG compression. Must be between 1 - 100.")
+	flag.IntVar(&settings.RollingAverage, "rollingAverage", defaultSettings.RollingAverage, "Number of frames to use for rolling average. 0 disables it.")
+	flag.StringVar(&tmpFormat, "format", string(defaultSettings.OutFormat), "Output format. Options are jpeg png.")
+	flag.IntVar(&settings.JpegQuality, "jpegQuality", defaultSettings.JpegQuality, "Level of JPEG compression. Must be between 1 - 100.")
 	flag.Parse()
 	settings.OutFormat = OutputFormat(tmpFormat)
 	return settings
@@ -52,12 +69,12 @@ func (s *Settings) Validate() []error {
 
 	if s.SourceDirectory == "" {
 		errors = append(errors, fmt.Errorf("No source directory specified."))
-	} else if !DirectoryExists(s.SourceDirectory) {
+	} else if !directoryExists(s.SourceDirectory) {
 		errors = append(errors, fmt.Errorf("The source directory could not be found."))
 	}
 	if s.DestinationDirectory == "" {
 		errors = append(errors, fmt.Errorf("No destination directory specified."))
-	} else if !DirectoryExists(s.DestinationDirectory) {
+	} else if !directoryExists(s.DestinationDirectory) {
 		errors = append(errors, fmt.Errorf("The destination directory could not be found."))
 	}
 	return errors

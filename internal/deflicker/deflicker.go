@@ -13,10 +13,10 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-type PictureInfo struct {
+type pictureInfo struct {
 	Name                 string
-	OriginalRgbHistogram RgbHistogram
-	DesiredRgbHistogram  RgbHistogram
+	OriginalRgbHistogram rgbHistogram
+	DesiredRgbHistogram  rgbHistogram
 }
 
 func Run(settings Settings, updater progress.Updater) error {
@@ -30,23 +30,23 @@ func Run(settings Settings, updater progress.Updater) error {
 	updater.Start()
 
 	// Read the entire source directory and create Picture structs with histograms
-	pictures, err := GetSourcePictureInfo(settings.SourceDirectory, updater)
+	pictures, err := getSourcePictureInfo(settings.SourceDirectory, updater)
 	if err != nil {
 		return err
 	}
 
-	err = FillDesiredHistograms(&pictures, updater, settings.RollingAverage)
+	err = fillDesiredHistograms(&pictures, updater, settings.RollingAverage)
 	if err != nil {
 		return err
 	}
 
-	AdjustImages(&pictures, settings, updater)
+	adjustImages(&pictures, settings, updater)
 
 	updater.Finish()
 	return nil
 }
 
-func AdjustImages(pictures *[]PictureInfo, settings Settings, updater progress.Updater) error {
+func adjustImages(pictures *[]pictureInfo, settings Settings, updater progress.Updater) error {
 	total := len(*pictures)
 	var completed atomic.Int32
 
@@ -56,17 +56,20 @@ func AdjustImages(pictures *[]PictureInfo, settings Settings, updater progress.U
 	for i := range *pictures {
 		g.Go(func() error {
 			sourcePath := filepath.Join(settings.SourceDirectory, (*pictures)[i].Name)
-			destinationPath := filepath.Join(settings.DestinationDirectory, (*pictures)[i].Name)
 
-			sourceImage, err := ReadImage(sourcePath)
+			destinationExtension := settings.OutFormat.Extension()
+			destinationFileName := strings.TrimSuffix((*pictures)[i].Name, filepath.Ext((*pictures)[i].Name)) + destinationExtension
+			destinationPath := filepath.Join(settings.DestinationDirectory, destinationFileName)
+
+			sourceImage, err := readImage(sourcePath)
 			if err != nil {
 				return err
 			}
 
-			destinationLut := GenerateRgbLutFromRgbHistograms((*pictures)[i].OriginalRgbHistogram, (*pictures)[i].DesiredRgbHistogram)
-			destinationImage := ApplyRgbLutToImage(sourceImage, destinationLut)
+			destinationLut := generateRgbLutFromRgbHistograms((*pictures)[i].OriginalRgbHistogram, (*pictures)[i].DesiredRgbHistogram)
+			destinationImage := applyRgbLutToImage(sourceImage, destinationLut)
 
-			if err := SaveImage(destinationImage, destinationPath, settings.OutFormat, settings.JpegQuality); err != nil {
+			if err := saveImage(destinationImage, destinationPath, settings.OutFormat, settings.JpegQuality); err != nil {
 				return err
 			}
 
@@ -77,11 +80,11 @@ func AdjustImages(pictures *[]PictureInfo, settings Settings, updater progress.U
 	return g.Wait()
 }
 
-func FillDesiredHistograms(pictures *[]PictureInfo, updater progress.Updater, rollingAverage int) error {
+func fillDesiredHistograms(pictures *[]pictureInfo, updater progress.Updater, rollingAverage int) error {
 
 	if rollingAverage < 1 {
 		// Simply calculate the global average histogram
-		var averageRgbHistogram RgbHistogram
+		var averageRgbHistogram rgbHistogram
 		for i := range *pictures {
 			for j := 0; j < 256; j++ {
 				averageRgbHistogram.R[j] += (*pictures)[i].OriginalRgbHistogram.R[j]
@@ -101,7 +104,7 @@ func FillDesiredHistograms(pictures *[]PictureInfo, updater progress.Updater, ro
 	} else {
 		// Calculate the rolling average histogram for each image
 		for i := range *pictures {
-			var averageRgbHistogram RgbHistogram
+			var averageRgbHistogram rgbHistogram
 			var start = i - rollingAverage
 			if start < 0 {
 				start = 0
@@ -130,7 +133,7 @@ func FillDesiredHistograms(pictures *[]PictureInfo, updater progress.Updater, ro
 	return nil
 }
 
-func GetSourcePictureInfo(directory string, updater progress.Updater) ([]PictureInfo, error) {
+func getSourcePictureInfo(directory string, updater progress.Updater) ([]pictureInfo, error) {
 
 	// Get raw list of files
 	files, err := os.ReadDir(directory)
@@ -151,7 +154,7 @@ func GetSourcePictureInfo(directory string, updater progress.Updater) ([]Picture
 	}
 
 	totalFiles := len(imageNames)
-	pictures := make([]PictureInfo, totalFiles)
+	pictures := make([]pictureInfo, totalFiles)
 	var completed atomic.Int32
 
 	var g errgroup.Group
@@ -160,12 +163,12 @@ func GetSourcePictureInfo(directory string, updater progress.Updater) ([]Picture
 	// Calculate histograms concurrently
 	for index, name := range imageNames {
 		g.Go(func() error {
-			image, err := ReadImage(filepath.Join(directory, name))
+			image, err := readImage(filepath.Join(directory, name))
 			if err != nil {
 				return err
 			}
-			histogram := GenerateRgbHistogramFromImage(image)
-			pictures[index] = PictureInfo{Name: name, OriginalRgbHistogram: histogram, DesiredRgbHistogram: RgbHistogram{}}
+			histogram := generateRgbHistogramFromImage(image)
+			pictures[index] = pictureInfo{Name: name, OriginalRgbHistogram: histogram, DesiredRgbHistogram: rgbHistogram{}}
 
 			updater.Increment(name, "Calculating histogram", int(completed.Add(1)), totalFiles)
 			return nil

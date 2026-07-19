@@ -15,7 +15,6 @@ import (
 	"github.com/ncruces/zenity"
 
 	"github.com/struffel/simple-deflicker/internal/deflicker"
-	"github.com/struffel/simple-deflicker/internal/progress"
 )
 
 // StartGUI launches the graphical user interface and blocks until the
@@ -36,7 +35,7 @@ func StartGUI() error {
 
 func runWindow(w *app.Window) error {
 	theme := material.NewTheme()
-	state := NewUiState(DefaultSettings())
+	state := newUiState(deflicker.DefaultSettings())
 
 	var ops op.Ops
 	for {
@@ -56,7 +55,7 @@ func runWindow(w *app.Window) error {
 // receiveGuiResults applies any results delivered by background goroutines
 // (directory pickers, deflickering) to the widget state. It must only be
 // called from the goroutine that owns the window.
-func receiveGuiResults(state *UiState) {
+func receiveGuiResults(state *uiState) {
 	select {
 	case dir := <-state.sourceResult:
 		state.sourceEditor.SetText(filepath.ToSlash(dir))
@@ -70,6 +69,7 @@ func receiveGuiResults(state *UiState) {
 	select {
 	case err := <-state.deflickerResult:
 		state.processing = false
+		state.setProgress(0, "")
 		if err != nil {
 			state.statusText = "An error occurred: " + err.Error()
 			go zenity.Error(err.Error(), zenity.Title("Simple Deflicker - Error"))
@@ -81,7 +81,7 @@ func receiveGuiResults(state *UiState) {
 	}
 }
 
-func handleGuiEvents(gtx layout.Context, w *app.Window, state *UiState) {
+func handleGuiEvents(gtx layout.Context, w *app.Window, state *uiState) {
 	state.formatEnum.Update(gtx)
 	state.Settings.OutFormat = deflicker.OutputFormat(state.formatEnum.Value)
 
@@ -109,9 +109,9 @@ func handleGuiEvents(gtx layout.Context, w *app.Window, state *UiState) {
 }
 
 // startDeflickering reads the current widget values into the settings, then
-// runs the deflickering process in the background while a zenity progress
-// dialog gives the user feedback.
-func startDeflickering(w *app.Window, state *UiState) {
+// runs the deflickering process in the background while the native progress
+// bar and start button give the user feedback.
+func startDeflickering(w *app.Window, state *uiState) {
 	state.Settings.SourceDirectory = filepath.ToSlash(state.sourceEditor.Text())
 	state.Settings.DestinationDirectory = filepath.ToSlash(state.destinationEditor.Text())
 	if v, err := strconv.Atoi(state.rollingAvgEditor.Text()); err == nil {
@@ -135,10 +135,36 @@ func startDeflickering(w *app.Window, state *UiState) {
 	settings := state.Settings
 
 	go func() {
-		updater := progress.NewZenityUpdater("Simple Deflicker")
+		updater := &guiUpdater{state: state, win: w}
 		err := deflicker.Run(settings, updater)
-		updater.Finish()
 		state.deflickerResult <- err
 		w.Invalidate()
 	}()
+}
+
+// guiUpdater implements progress.Updater by writing progress into the UiState
+// and invalidating the window so the native progress bar redraws. It is safe
+// for use from background goroutines.
+type guiUpdater struct {
+	state *uiState
+	win   *app.Window
+}
+
+func (u *guiUpdater) Start() {
+	u.state.setProgress(0, "Starting...")
+	u.win.Invalidate()
+}
+
+func (u *guiUpdater) Increment(msg string, phase string, completed int, ofTotal int) {
+	var fraction float32
+	if ofTotal > 0 {
+		fraction = float32(completed) / float32(ofTotal)
+	}
+	u.state.setProgress(fraction, fmt.Sprintf("%s: %s (%d/%d)", phase, msg, completed, ofTotal))
+	u.win.Invalidate()
+}
+
+func (u *guiUpdater) Finish() {
+	u.state.setProgress(1, "Finishing...")
+	u.win.Invalidate()
 }
