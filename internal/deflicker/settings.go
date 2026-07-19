@@ -34,9 +34,11 @@ type Settings struct {
 // DefaultSettings returns the settings the GUI is pre-populated and that the CLI uses if no arguments are provided.
 func DefaultSettings() Settings {
 	return Settings{
-		RollingAverage: 15,
-		OutFormat:      FormatPng,
-		JpegQuality:    95,
+		SourceDirectory:      "",
+		DestinationDirectory: "",
+		RollingAverage:       15,
+		OutFormat:            FormatPng,
+		JpegQuality:          95,
 	}
 }
 
@@ -44,8 +46,8 @@ func NewSettingsFromArgs() Settings {
 	var defaultSettings = DefaultSettings()
 	var settings Settings
 	var tmpFormat string
-	flag.StringVar(&settings.SourceDirectory, "source", "", "Directory with the images to process.")
-	flag.StringVar(&settings.DestinationDirectory, "destination", "", "Directory to put the processed images in.")
+	flag.StringVar(&settings.SourceDirectory, "source", defaultSettings.SourceDirectory, "Directory with the images to process.")
+	flag.StringVar(&settings.DestinationDirectory, "destination", defaultSettings.DestinationDirectory, "Directory to put the processed images in.")
 	flag.IntVar(&settings.RollingAverage, "rollingAverage", defaultSettings.RollingAverage, "Number of frames to use for rolling average. 0 disables it.")
 	flag.StringVar(&tmpFormat, "format", string(defaultSettings.OutFormat), "Output format. Options are jpeg png.")
 	flag.IntVar(&settings.JpegQuality, "jpegQuality", defaultSettings.JpegQuality, "Level of JPEG compression. Must be between 1 - 100.")
