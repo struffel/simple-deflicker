@@ -12,7 +12,7 @@ type Updater interface {
 type ConsoleUpdater struct{}
 
 func (c *ConsoleUpdater) Start() {
-	println("Processing started...")
+	fmt.Println("Processing started...")
 }
 
 func (c *ConsoleUpdater) Increment(msg string, phase string, completed int, ofTotal int) {
@@ -20,5 +20,5 @@ func (c *ConsoleUpdater) Increment(msg string, phase string, completed int, ofTo
 }
 
 func (c *ConsoleUpdater) Finish() {
-	println("Processing finished.")
+	fmt.Println("Processing finished.")
 }
