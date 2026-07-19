@@ -22,7 +22,7 @@ import (
 func StartGUI() error {
 	go func() {
 		w := new(app.Window)
-		w.Option(app.Title("Simple Deflicker"), app.Size(unit.Dp(480), unit.Dp(420)))
+		w.Option(app.Title("Simple Deflicker"), app.Size(unit.Dp(400), unit.Dp(500)))
 		if err := runWindow(w); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -82,6 +82,10 @@ func receiveGuiResults(state *uiState) {
 }
 
 func handleGuiEvents(gtx layout.Context, w *app.Window, state *uiState) {
+	if state.processing {
+		return
+	}
+
 	state.formatEnum.Update(gtx)
 	state.Settings.OutFormat = deflicker.OutputFormat(state.formatEnum.Value)
 
@@ -103,7 +107,7 @@ func handleGuiEvents(gtx layout.Context, w *app.Window, state *uiState) {
 			}
 		}()
 	}
-	if state.startBtn.Clicked(gtx) && !state.processing {
+	if state.startBtn.Clicked(gtx) {
 		startDeflickering(w, state)
 	}
 }

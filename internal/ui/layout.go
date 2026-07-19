@@ -10,36 +10,42 @@ import (
 	"github.com/struffel/simple-deflicker/internal/deflicker"
 )
 
+const version = "0.4.0"
+
 func layoutGui(gtx layout.Context, th *material.Theme, state *uiState) layout.Dimensions {
 	return layout.UniformInset(unit.Dp(12)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		controlsDisabled := state.processing
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 			// Title
+			layout.Rigid(material.H6(th, "Simple Deflicker").Layout),
+			layout.Rigid(material.Caption(th, "Version "+version).Layout),
+			layout.Rigid(layout.Spacer{Height: unit.Dp(12)}.Layout),
 
 			// Source directory
 			layout.Rigid(material.Body1(th, "Source Directory").Layout),
-			layout.Rigid(fullWidthBorderedEditor(th, &state.sourceEditor, false)),
+			layout.Rigid(fullWidthBorderedEditor(th, &state.sourceEditor, controlsDisabled)),
 			layout.Rigid(layout.Spacer{Height: unit.Dp(4)}.Layout),
-			layout.Rigid(material.Button(th, &state.browseSourceBtn, "Browse").Layout),
+			layout.Rigid(buttonWithState(th, &state.browseSourceBtn, "Browse", controlsDisabled)),
 			layout.Rigid(layout.Spacer{Height: unit.Dp(12)}.Layout),
 
 			// Destination directory
 			layout.Rigid(material.Body1(th, "Destination Directory").Layout),
-			layout.Rigid(fullWidthBorderedEditor(th, &state.destinationEditor, false)),
+			layout.Rigid(fullWidthBorderedEditor(th, &state.destinationEditor, controlsDisabled)),
 			layout.Rigid(layout.Spacer{Height: unit.Dp(4)}.Layout),
-			layout.Rigid(material.Button(th, &state.browseDestinationBtn, "Browse").Layout),
+			layout.Rigid(buttonWithState(th, &state.browseDestinationBtn, "Browse", controlsDisabled)),
 			layout.Rigid(layout.Spacer{Height: unit.Dp(12)}.Layout),
 
 			// Advanced settings
 			layout.Rigid(material.Body1(th, "Advanced settings").Layout),
 			layout.Rigid(layout.Spacer{Height: unit.Dp(4)}.Layout),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				jpegQualityDisabled := state.Settings.OutFormat != deflicker.FormatJpeg
+				jpegQualityDisabled := controlsDisabled || state.Settings.OutFormat != deflicker.FormatJpeg
 				return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-					layout.Flexed(1, labeledEditor(th, "Rolling average", &state.rollingAvgEditor, false)),
+					layout.Flexed(1, labeledEditor(th, "Rolling average", &state.rollingAvgEditor, controlsDisabled)),
 					layout.Rigid(layout.Spacer{Width: unit.Dp(8)}.Layout),
 					layout.Flexed(1, labeledEditor(th, "JPEG quality", &state.jpegQualityEditor, jpegQualityDisabled)),
 					layout.Rigid(layout.Spacer{Width: unit.Dp(8)}.Layout),
-					layout.Flexed(1, formatSelector(th, state)),
+					layout.Flexed(1, formatSelector(th, state, controlsDisabled)),
 				)
 			}),
 			layout.Rigid(layout.Spacer{Height: unit.Dp(16)}.Layout),
@@ -52,9 +58,8 @@ func layoutGui(gtx layout.Context, th *material.Theme, state *uiState) layout.Di
 					if _, progressText := state.progress(); progressText != "" {
 						text = progressText
 					}
-					gtx = gtx.Disabled()
 				}
-				return material.Button(th, &state.startBtn, text).Layout(gtx)
+				return buttonWithState(th, &state.startBtn, text, controlsDisabled)(gtx)
 			}),
 			layout.Rigid(layout.Spacer{Height: unit.Dp(20)}.Layout),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -64,21 +69,28 @@ func layoutGui(gtx layout.Context, th *material.Theme, state *uiState) layout.Di
 				return bar.Layout(gtx)
 			}),
 			layout.Rigid(layout.Spacer{Height: unit.Dp(8)}.Layout),
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				displayText := state.statusText
-				if state.processing {
-					displayText = ""
-				}
-				return material.Body2(th, displayText).Layout(gtx)
-			}),
 		)
 	})
 }
 
-func formatSelector(th *material.Theme, state *uiState) layout.Widget {
+func buttonWithState(th *material.Theme, btn *widget.Clickable, label string, disabled bool) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
+		if disabled {
+			gtx = gtx.Disabled()
+		}
+		return material.Button(th, btn, label).Layout(gtx)
+	}
+}
+
+func formatSelector(th *material.Theme, state *uiState, disabled bool) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		caption := material.Caption(th, "Output format")
+		if disabled {
+			caption.Color = disabledColor(th)
+			gtx = gtx.Disabled()
+		}
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-			layout.Rigid(material.Caption(th, "Output format").Layout),
+			layout.Rigid(caption.Layout),
 			layout.Rigid(material.RadioButton(th, &state.formatEnum, string(deflicker.FormatPng), "PNG").Layout),
 			layout.Rigid(material.RadioButton(th, &state.formatEnum, string(deflicker.FormatJpeg), "JPEG").Layout),
 		)

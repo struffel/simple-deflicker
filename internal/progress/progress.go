@@ -8,7 +8,7 @@ type Updater interface {
 	Finish()
 }
 
-// ConsoleUpdater is an implementation of the Updater interface that prints progress to the console.
+// Default implementation for printing to the console.
 type ConsoleUpdater struct{}
 
 func (c *ConsoleUpdater) Start() {
