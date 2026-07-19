@@ -1,4 +1,4 @@
-module github.com/StruffelProductions/simple-deflicker
+module github.com/struffel/simple-deflicker
 
 go 1.15
 
