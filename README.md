@@ -7,9 +7,8 @@ A minimalist, easy to use tool for deflickering image sequences such as timelaps
 Timelapse flickering can occur if one or more settings of the camera have been left on "auto" which causes it to randomly switch between two settings (for example shutter speeds).
 
 ## How to use this software
-* Download the latest version from the [releases page](https://github.com/StruffelProductions/simple-deflicker/releases). Prebuilt binaries are provided for Windows, and macOS builds are CLI-only.
-* Execute `simple-deflicker.exe` on Windows to use the GUI. Check the console for error messages.
-![image](https://user-images.githubusercontent.com/31403260/115123359-f2bbe400-9fbc-11eb-84d7-29615c5030fb.png)
+* Download the latest version from the [releases page](https://github.com/struffel/simple-deflicker/releases). Prebuilt binaries are provided only for Windows at this time.
+* Execute `simple-deflicker.exe` to use the GUI or `simple-deflicker-cli.exe` to use the CLI version.
 
 ## CLI usage
 Simple Deflicker can run without the GUI by passing a source and destination directory:
@@ -24,20 +23,13 @@ Optional flags:
 simple-deflicker-cli -source "/path/to/input" -destination "/path/to/output" -rollingAverage 15 -format png -jpegQuality 95
 ```
 
+## Building from source
 The GUI and CLI are separate binaries, built from `./cmd/gui` and `./cmd/cli` respectively:
 
 ```bash
 go build -o simple-deflicker ./cmd/gui
 go build -o simple-deflicker-cli ./cmd/cli
 ```
-
-macOS builds only support the CLI binary:
-
-```bash
-GOOS=darwin GOARCH=arm64 go build -o simple-deflicker-cli-macos-arm64 ./cmd/cli
-GOOS=darwin GOARCH=amd64 go build -o simple-deflicker-cli-macos-amd64 ./cmd/cli
-```
-
 
 ## Current limitations of the tool
 * Only JPG and PNG (8bit) are supported
