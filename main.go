@@ -25,7 +25,7 @@ func main() {
 		deflickeringError := runDeflickering()
 		if deflickeringError != nil {
 			clear()
-			fmt.Println("An error occured:")
+			fmt.Println("An error occurred:")
 			fmt.Println(deflickeringError)
 			os.Exit(1)
 		}
