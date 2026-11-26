@@ -31,6 +31,8 @@ go build -o simple-deflicker ./cmd/gui
 go build -o simple-deflicker-cli ./cmd/cli
 ```
 
+All dependencies are chosen to be compatible with macOS and Linux as well, meaning that building the software from source should work on these platforms too.
+
 ## Current limitations of the tool
 * Only JPG and PNG (8bit) are supported
 * JPGs will always be saved with a compression setting of 95
