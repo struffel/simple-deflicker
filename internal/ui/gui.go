@@ -20,7 +20,7 @@ import (
 func StartGUI() error {
 	go func() {
 		w := new(app.Window)
-		w.Option(app.Title("Simple Deflicker"), app.Size(unit.Dp(400), unit.Dp(500)))
+		w.Option(app.Title("Simple Deflicker"), app.Size(unit.Dp(400), unit.Dp(500)), app.MinSize(unit.Dp(400), unit.Dp(500)))
 		if err := runWindow(w); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
