@@ -35,7 +35,6 @@ All dependencies are chosen to be compatible with macOS and Linux as well, meani
 
 ## Current limitations of the tool
 * Only JPG and PNG (8bit) are supported
-* JPGs will always be saved with a compression setting of 95
 * All metadata present in the source files will not be copied over.
 * The software can only fix global flicker. It can not deal with rolling flicker (caused by certain indoor lighting conditions).
 
