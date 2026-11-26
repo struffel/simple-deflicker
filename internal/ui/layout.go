@@ -10,7 +10,7 @@ import (
 	"github.com/struffel/simple-deflicker/internal/deflicker"
 )
 
-const version = "0.4.0"
+const version = "0.5.0"
 
 func layoutGui(gtx layout.Context, th *material.Theme, state *uiState) layout.Dimensions {
 	return layout.UniformInset(unit.Dp(12)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
