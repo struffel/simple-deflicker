@@ -21,45 +21,13 @@ func layoutGui(gtx layout.Context, th *material.Theme, state *uiState) layout.Di
 			layout.Rigid(material.Caption(th, "Version "+version).Layout),
 			layout.Rigid(layout.Spacer{Height: unit.Dp(12)}.Layout),
 
-			// Source directory
-			layout.Rigid(material.Body1(th, "Source Directory").Layout),
-			layout.Rigid(fullWidthBorderedEditor(th, &state.sourceEditor, controlsDisabled)),
-			layout.Rigid(layout.Spacer{Height: unit.Dp(4)}.Layout),
-			layout.Rigid(buttonWithState(th, &state.browseSourceBtn, "Browse", controlsDisabled)),
-			layout.Rigid(layout.Spacer{Height: unit.Dp(12)}.Layout),
-
-			// Destination directory
-			layout.Rigid(material.Body1(th, "Destination Directory").Layout),
-			layout.Rigid(fullWidthBorderedEditor(th, &state.destinationEditor, controlsDisabled)),
-			layout.Rigid(layout.Spacer{Height: unit.Dp(4)}.Layout),
-			layout.Rigid(buttonWithState(th, &state.browseDestinationBtn, "Browse", controlsDisabled)),
-			layout.Rigid(layout.Spacer{Height: unit.Dp(12)}.Layout),
-
-			// Advanced settings
-			layout.Rigid(material.Body1(th, "Advanced settings").Layout),
-			layout.Rigid(layout.Spacer{Height: unit.Dp(4)}.Layout),
+			// All interactive controls. A disabled context blocks input events
+			// and grays out buttons and radio buttons
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				jpegQualityDisabled := controlsDisabled || state.Settings.OutFormat != deflicker.FormatJpeg
-				return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-					layout.Flexed(1, labeledEditor(th, "Rolling average", &state.rollingAvgEditor, controlsDisabled)),
-					layout.Rigid(layout.Spacer{Width: unit.Dp(8)}.Layout),
-					layout.Flexed(1, labeledEditor(th, "JPEG quality", &state.jpegQualityEditor, jpegQualityDisabled)),
-					layout.Rigid(layout.Spacer{Width: unit.Dp(8)}.Layout),
-					layout.Flexed(1, formatSelector(th, state, controlsDisabled)),
-				)
-			}),
-			layout.Rigid(layout.Spacer{Height: unit.Dp(16)}.Layout),
-
-			// Start button and progress bar
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				text := "Start"
-				if state.processing {
-					text = "Processing..."
-					if _, progressText := state.progress(); progressText != "" {
-						text = progressText
-					}
+				if controlsDisabled {
+					gtx = gtx.Disabled()
 				}
-				return buttonWithState(th, &state.startBtn, text, controlsDisabled)(gtx)
+				return layoutControls(gtx, th, state, controlsDisabled)
 			}),
 			layout.Rigid(layout.Spacer{Height: unit.Dp(20)}.Layout),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -73,13 +41,49 @@ func layoutGui(gtx layout.Context, th *material.Theme, state *uiState) layout.Di
 	})
 }
 
-func buttonWithState(th *material.Theme, btn *widget.Clickable, label string, disabled bool) layout.Widget {
-	return func(gtx layout.Context) layout.Dimensions {
-		if disabled {
-			gtx = gtx.Disabled()
-		}
-		return material.Button(th, btn, label).Layout(gtx)
-	}
+func layoutControls(gtx layout.Context, th *material.Theme, state *uiState, disabled bool) layout.Dimensions {
+	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+		// Source directory
+		layout.Rigid(material.Body1(th, "Source Directory").Layout),
+		layout.Rigid(fullWidthBorderedEditor(th, &state.sourceEditor, disabled)),
+		layout.Rigid(layout.Spacer{Height: unit.Dp(4)}.Layout),
+		layout.Rigid(material.Button(th, &state.browseSourceBtn, "Browse").Layout),
+		layout.Rigid(layout.Spacer{Height: unit.Dp(12)}.Layout),
+
+		// Destination directory
+		layout.Rigid(material.Body1(th, "Destination Directory").Layout),
+		layout.Rigid(fullWidthBorderedEditor(th, &state.destinationEditor, disabled)),
+		layout.Rigid(layout.Spacer{Height: unit.Dp(4)}.Layout),
+		layout.Rigid(material.Button(th, &state.browseDestinationBtn, "Browse").Layout),
+		layout.Rigid(layout.Spacer{Height: unit.Dp(12)}.Layout),
+
+		// Advanced settings
+		layout.Rigid(material.Body1(th, "Advanced settings").Layout),
+		layout.Rigid(layout.Spacer{Height: unit.Dp(4)}.Layout),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			jpegQualityDisabled := disabled || state.Settings.OutFormat != deflicker.FormatJpeg
+			return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+				layout.Flexed(1, labeledEditor(th, "Rolling average", &state.rollingAvgEditor, disabled)),
+				layout.Rigid(layout.Spacer{Width: unit.Dp(8)}.Layout),
+				layout.Flexed(1, labeledEditor(th, "JPEG quality", &state.jpegQualityEditor, jpegQualityDisabled)),
+				layout.Rigid(layout.Spacer{Width: unit.Dp(8)}.Layout),
+				layout.Flexed(1, formatSelector(th, state, disabled)),
+			)
+		}),
+		layout.Rigid(layout.Spacer{Height: unit.Dp(16)}.Layout),
+
+		// Start button
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			text := "Start"
+			if state.processing {
+				text = "Processing..."
+				if _, progressText := state.progress(); progressText != "" {
+					text = progressText
+				}
+			}
+			return material.Button(th, &state.startBtn, text).Layout(gtx)
+		}),
+	)
 }
 
 func formatSelector(th *material.Theme, state *uiState, disabled bool) layout.Widget {
@@ -87,7 +91,6 @@ func formatSelector(th *material.Theme, state *uiState, disabled bool) layout.Wi
 		caption := material.Caption(th, "Output format")
 		if disabled {
 			caption.Color = disabledColor(th)
-			gtx = gtx.Disabled()
 		}
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 			layout.Rigid(caption.Layout),
@@ -102,6 +105,8 @@ func labeledEditor(th *material.Theme, label string, ed *widget.Editor, disabled
 		caption := material.Caption(th, label)
 		if disabled {
 			caption.Color = disabledColor(th)
+			// Needed for editors disabled on their own, outside the disabled controls context.
+			gtx = gtx.Disabled()
 		}
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 			layout.Rigid(caption.Layout),
@@ -123,7 +128,6 @@ func fullWidthBorderedEditor(th *material.Theme, ed *widget.Editor, disabled boo
 		gtx.Constraints.Min.X = gtx.Constraints.Max.X
 		borderColor := th.Fg
 		if disabled {
-			gtx = gtx.Disabled()
 			borderColor = disabledColor(th)
 		}
 		border := widget.Border{Color: borderColor, Width: unit.Dp(1), CornerRadius: unit.Dp(4)}
