@@ -27,8 +27,8 @@ simple-deflicker-cli -source "/path/to/input" -destination "/path/to/output" -ro
 The GUI and CLI are separate binaries, built from `./cmd/gui` and `./cmd/cli` respectively:
 
 ```bash
-go build -o simple-deflicker ./cmd/gui
-go build -o simple-deflicker-cli ./cmd/cli
+go build -o simple-deflicker.exe -ldflags="-H windowsgui" ./cmd/gui
+go build -o simple-deflicker-cli.exe ./cmd/cli
 ```
 
 All dependencies are chosen to be compatible with macOS and Linux as well, meaning that building the software from source should work on these platforms too.
