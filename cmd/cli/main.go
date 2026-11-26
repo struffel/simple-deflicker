@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
@@ -17,8 +18,10 @@ func main() {
 	validationErrors := settings.Validate()
 	if len(validationErrors) > 0 {
 		for _, err := range validationErrors {
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, err)
 		}
+		fmt.Fprintln(os.Stderr)
+		flag.Usage()
 		os.Exit(1)
 	}
 
