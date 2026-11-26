@@ -17,6 +17,7 @@ func main() {
 	// In CLI mode, check the settings immediately
 	validationErrors := settings.Validate()
 	if len(validationErrors) > 0 {
+		fmt.Fprintln(os.Stderr, "Invalid settings:")
 		for _, err := range validationErrors {
 			fmt.Fprintln(os.Stderr, err)
 		}
