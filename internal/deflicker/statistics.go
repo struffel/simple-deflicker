@@ -19,10 +19,10 @@ type histogramComparison struct {
 }
 
 // channelEMD returns the unsigned and signed 1D earth mover's distance between
-// two histograms, both normalized by the bin count so the result is in [0, 1].
+// two histograms normalized by the bin count so the result is in [0, 1].
 // The signed value equals mean(B) - mean(A), scaled to [-1, 1].
 // An empty histogram yields (0, 0).
-func channelEMD(a, b *histogram) (earthMoversDistance float64, shift float64) {
+func channelEMD(a, b *histogram) (distance, shift float64) {
 	var totalA, totalB float64
 	for i := range a {
 		totalA += float64(a[i])
@@ -37,11 +37,11 @@ func channelEMD(a, b *histogram) (earthMoversDistance float64, shift float64) {
 		cumA += float64(a[i]) / totalA
 		cumB += float64(b[i]) / totalB
 		d := cumA - cumB // >0: A has more dark pixels so far, so B is lighter
-		earthMoversDistance += math.Abs(d)
+		distance += math.Abs(d)
 		shift += d
 	}
 	n := float64(len(a) - 1) // 255
-	return earthMoversDistance / n, shift / n
+	return distance / n, shift / n
 }
 
 func compareHistograms(a, b rgbHistogram) histogramComparison {

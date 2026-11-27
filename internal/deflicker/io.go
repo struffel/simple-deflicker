@@ -18,6 +18,7 @@ func directoryExists(path string) bool {
 	return false
 }
 
+// listImagesInDirectory returns the file names (not full paths) of all compatible images in the directory.
 func listImagesInDirectory(path string) ([]string, error) {
 	files, err := os.ReadDir(path)
 	if err != nil {
@@ -27,7 +28,7 @@ func listImagesInDirectory(path string) ([]string, error) {
 	for _, file := range files {
 		extension := strings.ToLower(filepath.Ext(file.Name()))
 		if extension == ".jpg" || extension == ".png" {
-			images = append(images, filepath.Join(path, file.Name()))
+			images = append(images, file.Name())
 		}
 	}
 	return images, nil
@@ -63,5 +64,5 @@ func saveImage(img image.Image, path string, format OutputFormat, jpegQuality in
 		return errors.New("unsupported output format")
 	}
 
-	return nil
+	return err
 }
