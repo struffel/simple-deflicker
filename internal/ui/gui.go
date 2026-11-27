@@ -155,12 +155,12 @@ func (u *guiUpdater) Start() {
 	u.win.Invalidate()
 }
 
-func (u *guiUpdater) Increment(msg string, phase string, completed int, ofTotal int) {
+func (u *guiUpdater) Increment(msg string, completed int, ofTotal int) {
 	var fraction float32
 	if ofTotal > 0 {
 		fraction = float32(completed) / float32(ofTotal)
 	}
-	u.state.setProgress(fraction, fmt.Sprintf("%s: %s (%d/%d)", phase, msg, completed, ofTotal))
+	u.state.setProgress(fraction, fmt.Sprintf("[%d/%d] %s", completed, ofTotal, msg))
 	u.win.Invalidate()
 }
 

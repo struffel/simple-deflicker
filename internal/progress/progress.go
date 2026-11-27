@@ -1,24 +1,30 @@
 package progress
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 type Updater interface {
 	Start()
-	Increment(msg string, phase string, completed int, ofTotal int)
+	Increment(msg string, completed int, ofTotal int)
 	Finish()
 }
 
 // Default implementation for printing to the console.
-type ConsoleUpdater struct{}
+type ConsoleUpdater struct {
+	startTime time.Time
+}
 
 func (c *ConsoleUpdater) Start() {
 	fmt.Println("Processing started...")
+	c.startTime = time.Now()
 }
 
-func (c *ConsoleUpdater) Increment(msg string, phase string, completed int, ofTotal int) {
-	fmt.Printf("%s: %s (%d/%d)\n", phase, msg, completed, ofTotal)
+func (c *ConsoleUpdater) Increment(msg string, completed int, ofTotal int) {
+	fmt.Printf("[%d/%d] %s\n", completed, ofTotal, msg)
 }
 
 func (c *ConsoleUpdater) Finish() {
-	fmt.Println("Processing finished.")
+	fmt.Printf("Processing finished in %s\n", time.Since(c.startTime))
 }

@@ -3,7 +3,6 @@ package deflicker
 import (
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -35,12 +34,11 @@ func Run(settings Settings, updater progress.Updater) error {
 		return err
 	}
 
-	err = fillDesiredHistograms(&pictures, updater, settings.RollingAverage)
-	if err != nil {
+	fillDesiredHistograms(pictures, settings.RollingAverage)
+
+	if err := adjustImages(&pictures, settings, updater); err != nil {
 		return err
 	}
-
-	adjustImages(&pictures, settings, updater)
 
 	updater.Finish()
 	return nil
@@ -73,81 +71,63 @@ func adjustImages(pictures *[]pictureInfo, settings Settings, updater progress.U
 				return err
 			}
 
-			updater.Increment((*pictures)[i].Name, "Adjusting image", int(completed.Add(1)), total)
+			histogramComparison := compareHistograms((*pictures)[i].OriginalRgbHistogram, (*pictures)[i].DesiredRgbHistogram)
+
+			updater.Increment(
+				fmt.Sprintf("Adjusted image %s (Shift: %+.5f / EMD: %.5f / Consistency: %.2f)",
+					(*pictures)[i].Name, histogramComparison.Shift, histogramComparison.Distance, histogramComparison.Consistency), int(completed.Add(1)), total)
 			return nil
 		})
 	}
 	return g.Wait()
 }
 
-func fillDesiredHistograms(pictures *[]pictureInfo, updater progress.Updater, rollingAverage int) error {
+// fillDesiredHistograms sets the desired histogram of each picture to the average of the original
+// histograms within the rolling window. A rollingAverage below 1 uses all pictures as the window.
+func fillDesiredHistograms(pictures []pictureInfo, rollingAverage int) {
+	last := len(pictures) - 1
 
+	// The global average is computed once and shared, since the window is identical for every picture.
+	var globalAverage rgbHistogram
 	if rollingAverage < 1 {
-		// Simply calculate the global average histogram
-		var averageRgbHistogram rgbHistogram
-		for i := range *pictures {
-			for j := 0; j < 256; j++ {
-				averageRgbHistogram.R[j] += (*pictures)[i].OriginalRgbHistogram.R[j]
-				averageRgbHistogram.G[j] += (*pictures)[i].OriginalRgbHistogram.G[j]
-				averageRgbHistogram.B[j] += (*pictures)[i].OriginalRgbHistogram.B[j]
-			}
-			//updater.Increment((*pictures)[i].Name, "Calculating average histogram", i+1, len(*pictures))
-		}
-		for i := 0; i < 256; i++ {
-			averageRgbHistogram.R[i] /= uint32(len(*pictures))
-			averageRgbHistogram.G[i] /= uint32(len(*pictures))
-			averageRgbHistogram.B[i] /= uint32(len(*pictures))
-		}
-		for i := range *pictures {
-			(*pictures)[i].DesiredRgbHistogram = averageRgbHistogram
-		}
-	} else {
-		// Calculate the rolling average histogram for each image
-		for i := range *pictures {
-			var averageRgbHistogram rgbHistogram
-			var start = i - rollingAverage
-			if start < 0 {
-				start = 0
-			}
-			var end = i + rollingAverage
-			if end > len(*pictures)-1 {
-				end = len(*pictures) - 1
-			}
-			for j := start; j <= end; j++ {
-				for k := 0; k < 256; k++ {
-					averageRgbHistogram.R[k] += (*pictures)[j].OriginalRgbHistogram.R[k]
-					averageRgbHistogram.G[k] += (*pictures)[j].OriginalRgbHistogram.G[k]
-					averageRgbHistogram.B[k] += (*pictures)[j].OriginalRgbHistogram.B[k]
-				}
-			}
-			for k := 0; k < 256; k++ {
-				averageRgbHistogram.R[k] /= uint32(end - start + 1)
-				averageRgbHistogram.G[k] /= uint32(end - start + 1)
-				averageRgbHistogram.B[k] /= uint32(end - start + 1)
-			}
-			(*pictures)[i].DesiredRgbHistogram = averageRgbHistogram
-			//updater.Increment((*pictures)[i].Name, "Calculating rolling average histogram", i+1, len(*pictures))
-		}
+		globalAverage = averageOriginalHistograms(pictures, 0, last)
 	}
 
-	return nil
+	for i := range pictures {
+		if rollingAverage < 1 {
+			pictures[i].DesiredRgbHistogram = globalAverage
+		} else {
+			start := max(i-rollingAverage, 0)
+			end := min(i+rollingAverage, last)
+			pictures[i].DesiredRgbHistogram = averageOriginalHistograms(pictures, start, end)
+		}
+	}
+}
+
+// averageOriginalHistograms returns the average of the original histograms of pictures[start..end] (inclusive).
+func averageOriginalHistograms(pictures []pictureInfo, start, end int) rgbHistogram {
+	var average rgbHistogram
+	for j := start; j <= end; j++ {
+		for k := 0; k < 256; k++ {
+			average.R[k] += pictures[j].OriginalRgbHistogram.R[k]
+			average.G[k] += pictures[j].OriginalRgbHistogram.G[k]
+			average.B[k] += pictures[j].OriginalRgbHistogram.B[k]
+		}
+	}
+	count := uint32(end - start + 1)
+	for k := 0; k < 256; k++ {
+		average.R[k] /= count
+		average.G[k] /= count
+		average.B[k] /= count
+	}
+	return average
 }
 
 func getSourcePictureInfo(directory string, updater progress.Updater) ([]pictureInfo, error) {
 
-	// Get raw list of files
-	files, err := os.ReadDir(directory)
+	imageNames, err := listImagesInDirectory(directory)
 	if err != nil {
 		return nil, err
-	}
-
-	// Filter down to the compatible image file names
-	var imageNames []string
-	for _, file := range files {
-		extension := strings.ToLower(filepath.Ext(file.Name()))
-		if extension == ".jpg" || extension == ".png" {
-			imageNames = append(imageNames, file.Name())
-		}
 	}
 	if len(imageNames) < 1 {
 		return nil, errors.New("the source directory does not contain any compatible images (JPG or PNG)")
@@ -170,7 +150,7 @@ func getSourcePictureInfo(directory string, updater progress.Updater) ([]picture
 			histogram := generateRgbHistogramFromImage(image)
 			pictures[index] = pictureInfo{Name: name, OriginalRgbHistogram: histogram, DesiredRgbHistogram: rgbHistogram{}}
 
-			updater.Increment(name, "Calculating histogram", int(completed.Add(1)), totalFiles)
+			updater.Increment(fmt.Sprintf("Calculated histogram for %s", name), int(completed.Add(1)), totalFiles)
 			return nil
 		})
 	}
