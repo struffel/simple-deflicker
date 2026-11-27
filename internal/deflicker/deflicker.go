@@ -73,7 +73,9 @@ func adjustImages(pictures *[]pictureInfo, settings Settings, updater progress.U
 				return err
 			}
 
-			updater.Increment((*pictures)[i].Name, "Adjusting image", int(completed.Add(1)), total)
+			histogramComparison := compareHistograms((*pictures)[i].OriginalRgbHistogram, (*pictures)[i].DesiredRgbHistogram)
+
+			updater.Increment((*pictures)[i].Name, fmt.Sprintf("Adjusting image (%s)", histogramComparison.direction(0.005)), int(completed.Add(1)), total)
 			return nil
 		})
 	}
