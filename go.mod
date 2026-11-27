@@ -4,7 +4,6 @@ go 1.25.0
 
 require (
 	gioui.org v0.10.1
-	github.com/disintegration/imaging v1.6.2
 	github.com/ncruces/zenity v0.10.14
 	golang.org/x/sync v0.22.0
 )
