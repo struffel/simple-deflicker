@@ -4,8 +4,6 @@ import (
 	"image"
 	"image/color"
 	"math"
-
-	"github.com/disintegration/imaging"
 )
 
 type lut [256]uint8
@@ -98,12 +96,35 @@ func generateRgbLutFromRgbHistograms(current rgbHistogram, target rgbHistogram) 
 
 // applyRgbLutToImage applies the given RGB lookup table (LUT) to the input image, adjusting its pixel values according to the LUT.
 func applyRgbLutToImage(input image.Image, lut rgbLut) image.Image {
-	result := imaging.AdjustFunc(input, func(c color.NRGBA) color.NRGBA {
-		c.R = uint8(lut.R[c.R])
-		c.G = uint8(lut.G[c.G])
-		c.B = uint8(lut.B[c.B])
-		return c
-	})
+	bounds := input.Bounds()
+	result := image.NewNRGBA(image.Rect(0, 0, bounds.Dx(), bounds.Dy()))
+	for y := 0; y < bounds.Dy(); y++ {
+		for x := 0; x < bounds.Dx(); x++ {
+			var c color.NRGBA
+			switch img := input.(type) {
+			case *image.NRGBA:
+				c = img.NRGBAAt(bounds.Min.X+x, bounds.Min.Y+y)
+			case *image.YCbCr:
+				pixel := img.YCbCrAt(bounds.Min.X+x, bounds.Min.Y+y)
+				r, g, b := color.YCbCrToRGB(pixel.Y, pixel.Cb, pixel.Cr)
+				c = color.NRGBA{R: r, G: g, B: b, A: 255}
+			default:
+				c = color.NRGBAModel.Convert(input.At(bounds.Min.X+x, bounds.Min.Y+y)).(color.NRGBA)
+			}
+			c.R = lut.R[c.R]
+			c.G = lut.G[c.G]
+			c.B = lut.B[c.B]
+
+			// This is equivalent to result.SetNRGBA(x, y, c)
+			// but without the bounds check which we do not need since we are iterating within image bounds
+			i := result.PixOffset(x, y)
+			s := result.Pix[i : i+4 : i+4]
+			s[0] = c.R
+			s[1] = c.G
+			s[2] = c.B
+			s[3] = c.A
+		}
+	}
 	return result
 }
 
