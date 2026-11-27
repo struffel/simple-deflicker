@@ -18,24 +18,11 @@ type histogramComparison struct {
 	PerChannelDist  [3]float64 // unsigned EMD for R, G, B
 }
 
-// Direction returns "lighter", "darker" or "same". eps is the shift magnitude
-// below which the images are considered equally bright (e.g. 0.005).
-func (r histogramComparison) direction(eps float64) string {
-	switch {
-	case r.Shift > eps:
-		return "lighter"
-	case r.Shift < -eps:
-		return "darker"
-	default:
-		return "same"
-	}
-}
-
 // channelEMD returns the unsigned and signed 1D earth mover's distance between
 // two histograms, both normalized by the bin count so the result is in [0, 1].
 // The signed value equals mean(B) - mean(A), scaled to [-1, 1].
 // An empty histogram yields (0, 0).
-func channelEMD(a, b *histogram) (dist, shift float64) {
+func channelEMD(a, b *histogram) (earthMoversDistance float64, shift float64) {
 	var totalA, totalB float64
 	for i := range a {
 		totalA += float64(a[i])
@@ -50,14 +37,13 @@ func channelEMD(a, b *histogram) (dist, shift float64) {
 		cumA += float64(a[i]) / totalA
 		cumB += float64(b[i]) / totalB
 		d := cumA - cumB // >0: A has more dark pixels so far, so B is lighter
-		dist += math.Abs(d)
+		earthMoversDistance += math.Abs(d)
 		shift += d
 	}
 	n := float64(len(a) - 1) // 255
-	return dist / n, shift / n
+	return earthMoversDistance / n, shift / n
 }
 
-// compareHistograms compares B against A.
 func compareHistograms(a, b rgbHistogram) histogramComparison {
 	var res histogramComparison
 

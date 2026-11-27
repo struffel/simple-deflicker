@@ -75,7 +75,9 @@ func adjustImages(pictures *[]pictureInfo, settings Settings, updater progress.U
 
 			histogramComparison := compareHistograms((*pictures)[i].OriginalRgbHistogram, (*pictures)[i].DesiredRgbHistogram)
 
-			updater.Increment((*pictures)[i].Name, fmt.Sprintf("Adjusting image (%s)", histogramComparison.direction(0.005)), int(completed.Add(1)), total)
+			updater.Increment(
+				fmt.Sprintf("Adjusted image %s (Shift: %+.5f / EMD: %.5f / Consistency: %.5f)",
+					(*pictures)[i].Name, histogramComparison.Shift, histogramComparison.Distance, histogramComparison.Consistency), int(completed.Add(1)), total)
 			return nil
 		})
 	}
@@ -172,7 +174,7 @@ func getSourcePictureInfo(directory string, updater progress.Updater) ([]picture
 			histogram := generateRgbHistogramFromImage(image)
 			pictures[index] = pictureInfo{Name: name, OriginalRgbHistogram: histogram, DesiredRgbHistogram: rgbHistogram{}}
 
-			updater.Increment(name, "Calculating histogram", int(completed.Add(1)), totalFiles)
+			updater.Increment(fmt.Sprintf("Calculated histogram for %s", name), int(completed.Add(1)), totalFiles)
 			return nil
 		})
 	}
