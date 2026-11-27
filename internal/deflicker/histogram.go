@@ -100,7 +100,17 @@ func applyRgbLutToImage(input image.Image, lut rgbLut) image.Image {
 	result := image.NewNRGBA(image.Rect(0, 0, bounds.Dx(), bounds.Dy()))
 	for y := 0; y < bounds.Dy(); y++ {
 		for x := 0; x < bounds.Dx(); x++ {
-			c := color.NRGBAModel.Convert(input.At(bounds.Min.X+x, bounds.Min.Y+y)).(color.NRGBA)
+			var c color.NRGBA
+			switch img := input.(type) {
+			case *image.NRGBA:
+				c = img.NRGBAAt(bounds.Min.X+x, bounds.Min.Y+y)
+			case *image.YCbCr:
+				pixel := img.YCbCrAt(bounds.Min.X+x, bounds.Min.Y+y)
+				r, g, b := color.YCbCrToRGB(pixel.Y, pixel.Cb, pixel.Cr)
+				c = color.NRGBA{R: r, G: g, B: b, A: 255}
+			default:
+				c = color.NRGBAModel.Convert(input.At(bounds.Min.X+x, bounds.Min.Y+y)).(color.NRGBA)
+			}
 			c.R = lut.R[c.R]
 			c.G = lut.G[c.G]
 			c.B = lut.B[c.B]
